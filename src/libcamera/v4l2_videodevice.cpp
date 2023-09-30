@@ -1105,7 +1105,8 @@ std::vector<V4L2PixelFormat> V4L2VideoDevice::enumPixelformats(uint32_t code)
 	if (code && !caps_.hasMediaController()) {
 		LOG(V4L2, Error)
 			<< "Media bus code filtering not supported by the device";
-		return {};
+        // HACKS
+		// return {};
 	}
 
 	for (unsigned int index = 0; ; index++) {
