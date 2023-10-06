@@ -202,7 +202,7 @@ static const SimplePipelineInfo supportedDevices[] = {
 	{ "mxc-isi", {} },
 	{ "qcom-camss", { { ConverterFlag::NoFlag, "linaro-sw-converter", 1 } } },
 	{ "sun6i-csi", {} },
-	{ "intel-ipu6", {} },
+	{ "intel-ipu6", { { ConverterFlag::NoFlag, "linaro-sw-converter", 1 } } },
 };
 
 } /* namespace */
