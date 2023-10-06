@@ -178,20 +178,26 @@ LOG_DEFINE_CATEGORY(SimplePipeline)
 
 class SimplePipelineHandler;
 
+enum class ConverterFlag {
+	NoFlag = 0,
+	MediaDevice = (1 << 0),
+};
+using ConverterFlags = Flags<ConverterFlag>;
+
 struct SimplePipelineInfo {
 	const char *driver;
 	/*
 	 * Each converter in the list contains the name
 	 * and the number of streams it supports.
 	 */
-	std::vector<std::pair<const char *, unsigned int>> converters;
+	std::vector<std::tuple<ConverterFlags, const char *, unsigned int>> converters;
 };
 
 namespace {
 
 static const SimplePipelineInfo supportedDevices[] = {
 	{ "dcmipp", {} },
-	{ "imx7-csi", { { "pxp", 1 } } },
+	{ "imx7-csi", { { ConverterFlag::MediaDevice, "pxp", 1 } } },
 	{ "j721e-csi2rx", {} },
 	{ "mxc-isi", {} },
 	{ "qcom-camss", {} },
@@ -331,6 +337,7 @@ public:
 
 	V4L2VideoDevice *video(const MediaEntity *entity);
 	V4L2Subdevice *subdev(const MediaEntity *entity);
+	const char *converterName() { return converterName_; }
 	MediaDevice *converter() { return converter_; }
 
 protected:
@@ -359,6 +366,7 @@ private:
 	MediaDevice *media_;
 	std::map<const MediaEntity *, EntityData> entities_;
 
+	const char *converterName_;
 	MediaDevice *converter_;
 };
 
@@ -496,9 +504,10 @@ int SimpleCameraData::init()
 	int ret;
 
 	/* Open the converter, if any. */
-	MediaDevice *converter = pipe->converter();
-	if (converter) {
-		converter_ = ConverterFactoryBase::create(converter);
+	const char *converterName = pipe->converterName();
+	if (converterName) {
+		LOG(SimplePipeline, Info) << "Creating converter '" << converterName << "'";
+		converter_ = ConverterFactoryBase::create(std::string(converterName), pipe->converter());
 		if (!converter_) {
 			LOG(SimplePipeline, Warning)
 				<< "Failed to create converter, disabling format conversion";
@@ -1410,13 +1419,21 @@ bool SimplePipelineHandler::match(DeviceEnumerator *enumerator)
 	if (!media_)
 		return false;
 
-	for (const auto &[name, streams] : info->converters) {
-		DeviceMatch converterMatch(name);
-		converter_ = acquireMediaDevice(enumerator, converterMatch);
-		if (converter_) {
-			numStreams = streams;
-			break;
+	for (const auto &[flags, name, streams] : info->converters) {
+		if (flags & ConverterFlag::MediaDevice) {
+			DeviceMatch converterMatch(name);
+			converter_ = acquireMediaDevice(enumerator, converterMatch);
+			if (!converter_) {
+				LOG(SimplePipeline, Debug)
+					<< "Failed to acquire converter media device '"
+					<< name << "'";
+				continue;
+			}
 		}
+
+		converterName_ = name;
+		numStreams = streams;
+		break;
 	}
 
 	/* Locate the sensors. */

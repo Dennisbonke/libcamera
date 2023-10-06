@@ -43,6 +43,9 @@ LOG_DEFINE_CATEGORY(Converter)
  */
 Converter::Converter(MediaDevice *media)
 {
+	if(!media)
+		return;
+
 	const std::vector<MediaEntity *> &entities = media->entities();
 	auto it = std::find_if(entities.begin(), entities.end(),
 			       [](MediaEntity *entity) {
@@ -210,22 +213,22 @@ ConverterFactoryBase::ConverterFactoryBase(const std::string name, std::initiali
  * \return A new instance of the converter subclass corresponding to the media
  * device, or null if the media device driver name doesn't match anything
  */
-std::unique_ptr<Converter> ConverterFactoryBase::create(MediaDevice *media)
+std::unique_ptr<Converter> ConverterFactoryBase::create(std::string name, MediaDevice *media)
 {
 	const std::vector<ConverterFactoryBase *> &factories =
 		ConverterFactoryBase::factories();
 
 	for (const ConverterFactoryBase *factory : factories) {
 		const std::vector<std::string> &compatibles = factory->compatibles();
-		auto it = std::find(compatibles.begin(), compatibles.end(), media->driver());
+		auto it = std::find(compatibles.begin(), compatibles.end(), name);
 
-		if (it == compatibles.end() && media->driver() != factory->name_)
+		if (it == compatibles.end() && name != factory->name_)
 			continue;
 
 		LOG(Converter, Debug)
 			<< "Creating converter from "
 			<< factory->name_ << " factory with "
-			<< (it == compatibles.end() ? "no" : media->driver()) << " alias.";
+			<< (it == compatibles.end() ? "no" : name) << " alias.";
 
 		std::unique_ptr<Converter> converter = factory->createInstance(media);
 		if (converter->isValid())

@@ -31,7 +31,7 @@ struct StreamConfiguration;
 class Converter
 {
 public:
-	Converter(MediaDevice *media);
+	Converter(MediaDevice *media = nullptr);
 	virtual ~Converter();
 
 	virtual int loadConfiguration(const std::string &filename) = 0;
@@ -72,7 +72,7 @@ public:
 
 	const std::vector<std::string> &compatibles() const { return compatibles_; }
 
-	static std::unique_ptr<Converter> create(MediaDevice *media);
+	static std::unique_ptr<Converter> create(std::string name, MediaDevice *media = nullptr);
 	static std::vector<ConverterFactoryBase *> &factories();
 	static std::vector<std::string> names();
 
@@ -81,7 +81,7 @@ private:
 
 	static void registerType(ConverterFactoryBase *factory);
 
-	virtual std::unique_ptr<Converter> createInstance(MediaDevice *media) const = 0;
+	virtual std::unique_ptr<Converter> createInstance(MediaDevice *media = nullptr) const = 0;
 
 	std::string name_;
 	std::vector<std::string> compatibles_;
