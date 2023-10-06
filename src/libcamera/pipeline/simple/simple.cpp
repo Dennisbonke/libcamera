@@ -200,7 +200,7 @@ static const SimplePipelineInfo supportedDevices[] = {
 	{ "imx7-csi", { { ConverterFlag::MediaDevice, "pxp", 1 } } },
 	{ "j721e-csi2rx", {} },
 	{ "mxc-isi", {} },
-	{ "qcom-camss", {} },
+	{ "qcom-camss", { { ConverterFlag::NoFlag, "linaro-sw-converter", 1 } } },
 	{ "sun6i-csi", {} },
 	{ "intel-ipu6", {} },
 };
