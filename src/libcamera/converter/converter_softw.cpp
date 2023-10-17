@@ -18,7 +18,12 @@
 #include "libcamera/internal/framebuffer.h"
 #include "libcamera/internal/mapped_framebuffer.h"
 
+#include <iostream>
+#include <cmath>
+
 namespace libcamera {
+
+constexpr bool plotHistograms = true;
 
 LOG_DECLARE_CATEGORY(Converter)
 
@@ -302,6 +307,11 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	int w_out = width_ - 2;
 	int h_out = height_ - 2;
 
+	std::vector<int> histRed(256, 0);
+	std::vector<int> histGreenRed(256, 0);
+	std::vector<int> histGreenBlue(256, 0);
+	std::vector<int> histBlue(256, 0);
+
 	unsigned long sumR = 0;
 	unsigned long sumB = 0;
 	unsigned long sumG = 0;
@@ -342,6 +352,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				val = *(pin_base + x_0);
 				sumR += val;
 				val = val * rNumerat_ / rDenomin_;
+				histRed[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				break;
 			case 1: /* at Gr pixel */
@@ -354,6 +365,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				val = *(pin_base + x_0);
 				sumG += val;
 				val = val * gNumerat_ / gDenomin_;
+				histGreenRed[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* red: ((-1,0) + (1,0)) / 2 */
 				val = ( *(pin_base + x_m1)
@@ -371,6 +383,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				val = *(pin_base + x_0);
 				sumG += val;
 				val = val * gNumerat_ / gDenomin_;
+				histGreenBlue[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* red: ((0,-1) + (0,1)) / 2 */
 				val = ( *(pin_base + x_0 - stride_)
@@ -383,6 +396,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				val = *(pin_base + x_0);
 				sumB += val;
 				val = val * bNumerat_ / bDenomin_;
+				histBlue[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
 				val = ( *(pin_base + x_0 - stride_)
@@ -436,6 +450,62 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 			      << " ], bGain = [ " << bNumerat_ << " / " << bDenomin_
 			      << " ], gGain = [ " << gNumerat_ << " / " << gDenomin_
 			      << " (minDenom = " << minDenom << ")";
+	
+	if(plotHistograms) {
+		double max = *max_element(histRed.begin(), histRed.end());
+		for(int y = 0; y < 512; y++) {
+			for(int x = 0; x < 256; x++) {
+				unsigned hROffset = (x + w_out * y) * 3;
+				unsigned hGROffset = (x + 512 + w_out * y) * 3;
+				unsigned hGBOffset = (x + 1024 + w_out * y) * 3;
+				unsigned hBOffset = (x + 1536 + w_out * y) * 3;
+
+				// Plot the red histogram.
+				if(y * -1 + 512 < (histRed[x] / max * 512)) {
+					*(dst + hROffset) = 0x00;
+					*(dst + hROffset + 0x1) = 0x00;
+					*(dst + hROffset + 0x2) = 0xff;
+				} else {
+					*(dst + hROffset) = *(dst + hROffset) / 4;
+					*(dst + hROffset + 0x1) = *(dst + hROffset) /4;
+					*(dst + hROffset + 0x2) = *(dst + hROffset) / 4;
+				}
+
+				// Plot the greenRed histogram.
+				if(y * -1 + 512 < (histGreenRed[x] / max * 512)) {
+					*(dst + hGROffset) = 0x00;
+					*(dst + hGROffset + 0x1) = 0xff;
+					*(dst + hGROffset + 0x2) = 0x00;
+				} else {
+					*(dst + hGROffset) = *(dst + hGROffset) / 4;
+					*(dst + hGROffset + 0x1) = *(dst + hGROffset) / 4;
+					*(dst + hGROffset + 0x2) = *(dst + hGROffset) / 4;
+				}
+
+				// Plot the greenBlue histogram.
+				if(y * -1 + 512 < (histGreenBlue[x] / max * 512)) {
+					*(dst + hGBOffset) = 0x00;
+					*(dst + hGBOffset + 0x1) = 0xff;
+					*(dst + hGBOffset + 0x2) = 0x00;
+				} else {
+					*(dst + hGBOffset) = *(dst + hGBOffset) / 4;
+					*(dst + hGBOffset + 0x1) = *(dst + hGBOffset) / 4;
+					*(dst + hGBOffset + 0x2) = *(dst + hGBOffset) / 4;
+				}
+
+				// Plot the blue histogram.
+				if(y * -1 + 512 < (histBlue[x] / max * 512)) {
+					*(dst + hBOffset) = 0xff;
+					*(dst + hBOffset + 0x1) = 0x00;
+					*(dst + hBOffset + 0x2) = 0x00;
+				} else {
+					*(dst + hBOffset) = *(dst + hBOffset) / 4;
+					*(dst + hBOffset + 0x1) = *(dst + hBOffset) / 4;
+					*(dst + hBOffset + 0x2) = *(dst + hBOffset) / 4;
+				}
+			}
+		}
+	}
 }
 
 static std::initializer_list<std::string> compatibles = {};
