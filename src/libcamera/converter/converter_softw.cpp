@@ -139,6 +139,11 @@ int SwConverter::Isp::configure(const StreamConfiguration &inputCfg,
 	bNumerat_ = bDenomin_ = 1;
 	gNumerat_ = gDenomin_ = 1;
 
+	histRed_.resize(256, 0);
+	histGreenRed_.resize(256, 0);
+	histGreenBlue_.resize(256, 0);
+	histBlue_.resize(256, 0);
+
 	return 0;
 }
 
@@ -260,7 +265,7 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 	debayer(out.planes()[0].data(), in.planes()[0].data());
 	metadata.planes()[0].bytesused = out.planes()[0].size();
 
-	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_);
+	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_, histRed_, histGreenRed_, histGreenBlue_, histBlue_);
 
 	converter_->outputBufferReady.emit(output);
 	converter_->inputBufferReady.emit(input);
@@ -275,6 +280,10 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 
 void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 {
+	histRed_.clear();
+	histGreenRed_.clear();
+	histGreenBlue_.clear();
+	histBlue_.clear();
 	/* RAW10P input format is assumed */
 
 	/* output buffer is in BGR24 format and is of (width-2)*(height-2) */
@@ -288,6 +297,11 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 
 	unsigned long bright_sum = 0;
 	unsigned long too_bright_sum = 0;
+
+	std::vector<int> histRed(256, 0);
+	std::vector<int> histGreenRed(256, 0);
+	std::vector<int> histGreenBlue(256, 0);
+	std::vector<int> histBlue(256, 0);
 
 	for (int y = 0; y < h_out; y++) {
 		const uint8_t *pin_base = src + (y + 1) * stride_;
@@ -332,6 +346,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				if (y_val > BRIGHT_LVL) ++bright_sum;
 				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
 				val = val * rNumerat_ / rDenomin_;
+				histRed[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				break;
 			case 1: /* at Gr pixel */
@@ -346,6 +361,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				sumG += val;
 				y_val += GREEN_Y_MUL * val;
 				val = val * gNumerat_ / gDenomin_;
+				histGreenRed[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* red: ((-1,0) + (1,0)) / 2 */
 				val = ( *(pin_base + x_m1)
@@ -368,6 +384,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				sumG += val;
 				y_val += GREEN_Y_MUL * val;
 				val = val * gNumerat_ / gDenomin_;
+				histGreenBlue[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* red: ((0,-1) + (0,1)) / 2 */
 				val = ( *(pin_base + x_0 - stride_)
@@ -384,6 +401,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				sumB += val;
 				y_val = BLUE_Y_MUL * val;
 				val = val * bNumerat_ / bDenomin_;
+				histBlue[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
 				val = ( *(pin_base + x_0 - stride_)
@@ -410,6 +428,10 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	/* calculate the fractions of "bright" and "too bright" pixels */
 	bright_ratio_ = (float)bright_sum / (h_out * w_out);
 	too_bright_ratio_ = (float)too_bright_sum / (h_out * w_out);
+	histRed_ = histRed;
+	histGreenRed_ = histGreenRed;
+	histGreenBlue_ = histGreenBlue;
+	histBlue_ = histBlue;
 {
 	static int xxx = 75;
 	if (--xxx == 0) {

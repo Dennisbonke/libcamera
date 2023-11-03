@@ -48,6 +48,7 @@ public:
 
 private:
 	void update_exposure(double ev_adjustment);
+	void update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue);
 
 	SharedFD fd_;
 	Statistics *stats_;
@@ -137,9 +138,41 @@ void IPASimple::update_exposure(double ev_adjustment)
 			      << ", real EV = " << (double)again_ * exposure_;
 }
 
+void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue) {
+	int redPeak = std::distance(histRed.begin(), std::max_element(histRed.begin(), histRed.end()));
+
+	// Find peaks in green-red histogram
+	int greenRedPeak = std::distance(histGreenRed.begin(), std::max_element(histGreenRed.begin(), histGreenRed.end()));
+
+	// Find peaks in green-blue histogram
+	int greenBluePeak = std::distance(histGreenBlue.begin(), std::max_element(histGreenBlue.begin(), histGreenBlue.end()));
+
+	// Find peaks in blue histogram
+	int bluePeak = std::distance(histBlue.begin(), std::max_element(histBlue.begin(), histBlue.end()));
+
+	// Calculate exposure and gain based on the peaks
+	int maxPeak = std::max({redPeak, greenRedPeak, greenBluePeak, bluePeak});
+	int minPeak = std::min({redPeak, greenRedPeak, greenBluePeak, bluePeak});
+
+	// optimalGain = 1.0; // Set default gain (can be adjusted based on camera properties)
+	exposure_ = maxPeak - minPeak;
+	if(exposure_ > exposure_max_)
+		exposure_ = exposure_max_;
+	else if(exposure_ < exposure_min_)
+		exposure_ = exposure_min_;
+	again_ = again_max_;
+
+	// (void)histRed;
+	// (void)histGreenRed;
+	// (void)histGreenBlue;
+	// (void)histBlue;
+	LOG(IPASimple, Debug) << "update_exposure2 called!";
+}
+
 void IPASimple::processStats(const ControlList &sensorControls)
 {
 	double ev_adjustment = 0.0;
+	(void)ev_adjustment;
 	ControlList ctrls(sensorControls);
 
 	/*
@@ -153,6 +186,7 @@ void IPASimple::processStats(const ControlList &sensorControls)
 		return;
 	}
 
+#if 0
 	if (stats_->bright_ratio < 0.01) ev_adjustment = 1.1;
 	if (stats_->too_bright_ratio > 0.04) ev_adjustment = 0.9;
 
@@ -176,6 +210,17 @@ void IPASimple::processStats(const ControlList &sensorControls)
 
 		setSensorControls.emit(ctrls);
 	}
+#else
+	exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
+	again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
+	update_exposure2(stats_->histRed, stats_->histGreenRed, stats_->histGreenBlue, stats_->histBlue);
+	ctrls.set(V4L2_CID_EXPOSURE, exposure_);
+	ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
+
+	ignore_updates_ = 2;
+
+	setSensorControls.emit(ctrls);
+#endif
 }
 
 int IPASimple::start()
