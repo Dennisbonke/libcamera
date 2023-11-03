@@ -202,6 +202,7 @@ static const SimplePipelineInfo supportedDevices[] = {
 	{ "mxc-isi", {} },
 	{ "qcom-camss", { { "software", 1 } } },
 	{ "sun6i-csi", {} },
+	{ "intel-ipu6", { { "software", 1 } } },
 };
 
 } /* namespace */
