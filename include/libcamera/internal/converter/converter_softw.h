@@ -27,6 +27,13 @@ class Size;
 class SizeRange;
 struct StreamConfiguration;
 
+struct Stats {
+	std::vector<int> histRed;
+	std::vector<int> histGreenRed;
+	std::vector<int> histGreenBlue;
+	std::vector<int> histBlue;
+};
+
 class SwConverter : public Converter
 {
 public:
@@ -54,7 +61,8 @@ public:
 	int queueBuffers(FrameBuffer *input,
 			 const std::map<unsigned int, FrameBuffer *> &outputs);
 
-	Signal<float, float> agcDataReady;
+	// Use fucking vectors bruh
+	Signal<float, float, struct Stats> agcDataReady;
 
 private:
 	class Isp : public Object
@@ -89,6 +97,13 @@ private:
 
 		float bright_ratio_;		/* 0.0 to 1.0 (1.0 == 100%) */
 		float too_bright_ratio_;	/* 0.0 to 1.0 */
+
+		std::vector<int> histRed_;
+		std::vector<int> histGreenRed_;
+		std::vector<int> histGreenBlue_;
+		std::vector<int> histBlue_;
+
+		struct Stats stats_;
 	};
 
 	std::unique_ptr<Isp> isp_;

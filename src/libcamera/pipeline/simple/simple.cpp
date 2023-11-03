@@ -291,7 +291,7 @@ private:
 	void converterInputDone(FrameBuffer *buffer);
 	void converterOutputDone(FrameBuffer *buffer);
 
-	void converterAgcDataReady(float bright_ratio, float too_bright_ratio);
+	void converterAgcDataReady(float bright_ratio, float too_bright_ratio, struct Stats stats);
 	void setSensorControls(const ControlList &sensorControls);
 };
 
@@ -603,10 +603,16 @@ int SimpleCameraData::init()
 	return 0;
 }
 
-void SimpleCameraData::converterAgcDataReady(float bright_ratio,
-					     float too_bright_ratio)
+void SimpleCameraData::converterAgcDataReady(float bright_ratio, float too_bright_ratio, struct Stats stats)
 {
 	if (!ipa_) return;
+
+	// std::cout << "YEEEEET: " << hist[0] << std::endl;
+
+	std::cout << "red: " << stats.histRed[0] << std::endl;
+	std::cout << "green-red: " << stats.histGreenRed[0] << std::endl;
+	std::cout << "green-blue: " << stats.histGreenBlue[0] << std::endl;
+	std::cout << "blue: " << stats.histBlue[0] << std::endl;
 
 	stats_->bright_ratio = bright_ratio;
 	stats_->too_bright_ratio = too_bright_ratio;

@@ -260,7 +260,7 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 	debayer(out.planes()[0].data(), in.planes()[0].data());
 	metadata.planes()[0].bytesused = out.planes()[0].size();
 
-	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_);
+	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_, stats_);
 
 	converter_->outputBufferReady.emit(output);
 	converter_->inputBufferReady.emit(input);
@@ -332,6 +332,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				if (y_val > BRIGHT_LVL) ++bright_sum;
 				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
 				val = val * rNumerat_ / rDenomin_;
+				histRed_[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				break;
 			case 1: /* at Gr pixel */
@@ -346,6 +347,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				sumG += val;
 				y_val += GREEN_Y_MUL * val;
 				val = val * gNumerat_ / gDenomin_;
+				histGreenRed_[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* red: ((-1,0) + (1,0)) / 2 */
 				val = ( *(pin_base + x_m1)
@@ -368,6 +370,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				sumG += val;
 				y_val += GREEN_Y_MUL * val;
 				val = val * gNumerat_ / gDenomin_;
+				histGreenBlue_[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* red: ((0,-1) + (0,1)) / 2 */
 				val = ( *(pin_base + x_0 - stride_)
@@ -384,6 +387,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				sumB += val;
 				y_val = BLUE_Y_MUL * val;
 				val = val * bNumerat_ / bDenomin_;
+				histBlue_[std::min(val, 0xffU)] += 1;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 				/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
 				val = ( *(pin_base + x_0 - stride_)
@@ -410,6 +414,10 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	/* calculate the fractions of "bright" and "too bright" pixels */
 	bright_ratio_ = (float)bright_sum / (h_out * w_out);
 	too_bright_ratio_ = (float)too_bright_sum / (h_out * w_out);
+	stats_.histRed = histRed_;
+	stats_.histGreenRed = histGreenRed_;
+	stats_.histGreenBlue = histGreenBlue_;
+	stats_.histBlue = histBlue_;
 {
 	static int xxx = 75;
 	if (--xxx == 0) {
