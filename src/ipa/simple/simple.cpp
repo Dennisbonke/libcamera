@@ -20,7 +20,7 @@
 #include <numeric>
 
 #define EXPOSURE_SATISFACTORY_OFFSET 0.2
-#define EXPOSURE_CHANGE_VALUE 10
+#define EXPOSURE_CHANGE_VALUE 30
 
 namespace libcamera {
 
@@ -173,20 +173,32 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Algorithm will be satisfied if val is less than EXPOSURE_SATISFACTORY_OFFSET away from 2.5 (which is optimal)
 	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
 	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
-		// Exposure needs to be lower.
+		// Exposure needs to be higher.
 		exposure_ += EXPOSURE_CHANGE_VALUE;
+		if (exposure_ >= exposure_max_){
+			// Increase gain.
+			again_ += EXPOSURE_CHANGE_VALUE;
+		}
 	}
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
-		// Exposure needs to be higher.
+		// Exposure needs to be lower.
 		exposure_ -= EXPOSURE_CHANGE_VALUE;
+		if (exposure_ <= exposure_min_){
+			// decrease gain.
+			again_ -= EXPOSURE_CHANGE_VALUE;
+		}
 	}
 
 	// Clamp exposure value between max and min value it's allowed to be.
 	if (exposure_ > exposure_max_) exposure_ = exposure_max_;
 	else if (exposure_ < exposure_min_) exposure_ = exposure_min_;
+	
+	// Clamp gain value between max and min value it's allowed to be.
+	if (again_ > again_max_) again_ = again_max_;
+	else if (again_ < again_min_) again_ = again_min_;
 
 	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
-	again_ = 1.0;
+	//again_ = 1.0;
 
 	LOG(IPASimple, Debug) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << again_;
 }
