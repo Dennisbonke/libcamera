@@ -182,7 +182,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	}
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
 		if (exposure_ == exposure_max_ && again_ != again_min_){
-			again_ -= EXPOSURE_CHANGE_VALUE
+			again_ -= EXPOSURE_CHANGE_VALUE;
 		}else {
 			exposure_ -= EXPOSURE_CHANGE_VALUE;
 		}
