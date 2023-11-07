@@ -424,7 +424,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 			}
 			// Add 1 to luminance value bin in luminance histogram
-			histLuminance[std::min(y_val, 0xffU)] += 1;
+			histLuminance[std::min(y_val/256, 0xffU)] += 1;
 		}
 	}
 
@@ -435,7 +435,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	histGreenRed_ = histGreenRed;
 	histGreenBlue_ = histGreenBlue;
 	histBlue_ = histBlue;
-	histLuminance_ = histLuminance / 256;
+	histLuminance_ = histLuminance;
 {
 	static int xxx = 75;
 	if (--xxx == 0) {
