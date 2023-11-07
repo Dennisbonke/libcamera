@@ -161,7 +161,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	std::vector<int>::iterator it = histLuminance.begin();
 
 	for(int i = 0; i <= 4; i++){
-		unsigned Xi = std::accumulate(it,it+offset-1,0);
+		unsigned Xi = std::accumulate(it,it+offset,0);
 		it += offset;
 		Num += Xi * (i + 1);
 		LOG(IPASimple, Debug) << "Xi: " << Xi;
