@@ -174,11 +174,11 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
 	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
 		// Exposure needs to be lower.
-		exposure_ -= EXPOSURE_CHANGE_VALUE;
+		exposure_ += EXPOSURE_CHANGE_VALUE;
 	}
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
 		// Exposure needs to be higher.
-		exposure_ += EXPOSURE_CHANGE_VALUE;
+		exposure_ -= EXPOSURE_CHANGE_VALUE;
 	}
 
 	// Clamp exposure value between max and min value it's allowed to be.
