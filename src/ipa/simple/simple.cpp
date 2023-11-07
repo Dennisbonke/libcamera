@@ -144,6 +144,11 @@ void IPASimple::update_exposure(double ev_adjustment)
 
 void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue, std::vector<int> histLuminance) {
 
+	(void)histRed;
+	(void)histGreenRed;
+	(void)histGreenBlue;
+	(void)histBlue;
+
 	unsigned Num = 0;
 
 	// Totals up all luminance values.
