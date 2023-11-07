@@ -158,7 +158,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	size_t const offset = histLuminance.size() / 5; // Point of failure. This could result in weird behavior since it's dividing a power of 2 by 5.
 	(void) offset;
 //
-	size_t const histSize = histLuminance.size();
+	//size_t const histSize = histLuminance.size();
 
 	// int offset = histSize/5;
 
