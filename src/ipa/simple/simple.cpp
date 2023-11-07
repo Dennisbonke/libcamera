@@ -153,61 +153,37 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 
 	// Totals up all luminance values.
 	unsigned Denom = std::accumulate(histLuminance.begin(),histLuminance.end(),0);
-	
-	// Calculate default offset for each region.
-	size_t const offset = histLuminance.size() / 5; // Point of failure. This could result in weird behavior since it's dividing a power of 2 by 5.
-	(void) offset;
-//
-	//size_t const histSize = histLuminance.size();
 
-	// int offset = histSize/5;
-
-	// unsigned binbin[] = {0,0,0,0,0};
-
-	// for(unsigned int i = 0; i < histSize; i++)
-	// {
-	// 	binbin[i/offset] += histLuminance[i];
-	// }
-
-	// for(int i = 0; i <= 4; i++){
-		
-	// 	Num += binbin[i] * (i + 1);
-	// 	LOG(IPASimple, Debug) << "Bin: " << binbin[i] << " Num: " << Num;
-	// }
-
+	// Calculates Numerator
 	for(int i = 0; i <= 4; i++){
-		
-		//std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
-		//std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
-
 		std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
 		std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
 
 		unsigned Xi = std::accumulate(beginIterator,endIterator,0);
 
 		Num += Xi * (i + 1);
-
-		LOG(IPASimple, Debug) << "Begin: " << *beginIterator << " End: " << *endIterator << " Num: " << Num;
 	}
 
-
 	// Correctly exposed when val = 2.5
-
 	float val = (float)Num / Denom;
-	LOG(IPASimple, Debug) << "Value: " << val << " Numerator: " << (float)Num << " Denominator: " << Denom;
+
 	// Algorithm will be satisfied if val is less than EXPOSURE_SATISFACTORY_OFFSET away from 2.5 (which is optimal)
 	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
+
 	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
-		LOG(IPASimple, Debug) << "UNDEREXPOSED!!!!";
+
 		// Exposure needs to be higher.
 		exposure_ += EXPOSURE_CHANGE_VALUE;
+
 		if (exposure_ >= exposure_max_){
 			// Increase gain.
 			again_ += EXPOSURE_CHANGE_VALUE;
 		}
 	}
+	
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
-		LOG(IPASimple, Debug) << "OVEREXPOSED!!!!";
+
+		// If exposure is maximum, and gain is not minimum, decrease gain.
 		if (exposure_ == exposure_max_ && again_ != again_min_){
 			again_ -= EXPOSURE_CHANGE_VALUE;
 		}else {
