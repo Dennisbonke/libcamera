@@ -291,7 +291,7 @@ private:
 	void converterInputDone(FrameBuffer *buffer);
 	void converterOutputDone(FrameBuffer *buffer);
 
-	void converterAgcDataReady(float bright_ratio, float too_bright_ratio, std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue);
+	void converterAgcDataReady(float bright_ratio, float too_bright_ratio, std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue, std::vector<int> histLuminance);
 	void setSensorControls(const ControlList &sensorControls);
 };
 
@@ -603,7 +603,7 @@ int SimpleCameraData::init()
 	return 0;
 }
 
-void SimpleCameraData::converterAgcDataReady(float bright_ratio, float too_bright_ratio, std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue)
+void SimpleCameraData::converterAgcDataReady(float bright_ratio, float too_bright_ratio, std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue, std::vector<int> histLuminance)
 {
 	if (!ipa_) return;
 
@@ -620,6 +620,7 @@ void SimpleCameraData::converterAgcDataReady(float bright_ratio, float too_brigh
 	stats_->histGreenRed = histGreenRed;
 	stats_->histGreenBlue = histGreenBlue;
 	stats_->histBlue = histBlue;
+	stats_->histLuminance = histLuminance;
 	ipa_->processStats(sensor_->getControls( { V4L2_CID_ANALOGUE_GAIN,
 						   V4L2_CID_EXPOSURE } ) );
 }

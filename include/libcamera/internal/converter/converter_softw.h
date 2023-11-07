@@ -54,7 +54,7 @@ public:
 	int queueBuffers(FrameBuffer *input,
 			 const std::map<unsigned int, FrameBuffer *> &outputs);
 
-	Signal<float, float, std::vector<int>, std::vector<int>, std::vector<int>, std::vector<int>> agcDataReady;
+	Signal<float, float, std::vector<int>, std::vector<int>, std::vector<int>, std::vector<int>, std::vector<int>> agcDataReady;
 
 private:
 	class Isp : public Object
@@ -94,6 +94,7 @@ private:
 		std::vector<int> histGreenRed_;
 		std::vector<int> histGreenBlue_;
 		std::vector<int> histBlue_;
+		std::vector<int> histLuminance_;
 	};
 
 	std::unique_ptr<Isp> isp_;

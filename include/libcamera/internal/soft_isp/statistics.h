@@ -19,6 +19,7 @@ struct Statistics {
 	std::vector<int> histGreenRed;
 	std::vector<int> histGreenBlue;
 	std::vector<int> histBlue;
+	std::vector<int> histLuminance;
 };
 
 }; /* namespace libcamera */
