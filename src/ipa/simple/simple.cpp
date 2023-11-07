@@ -162,7 +162,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 		std::vector<int>::iterator beginIterator = histLuminance.begin();
 		std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
 
-		unsigned Xi = std::accumulate(beginIterator,endIterator,0);
+		unsigned Xi = std::accumulate(histLuminance.begin(),histLuminance.end(),0);
 
 		Num += Xi * (i + 1);
 
