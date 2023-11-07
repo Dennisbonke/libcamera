@@ -20,7 +20,7 @@
 #include <numeric>
 
 #define EXPOSURE_SATISFACTORY_OFFSET 0.2
-#define EXPOSURE_CHANGE_VALUE 1
+#define EXPOSURE_CHANGE_VALUE 10
 
 namespace libcamera {
 
