@@ -181,12 +181,13 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 		}
 	}
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
-		// Exposure needs to be lower.
-		exposure_ -= EXPOSURE_CHANGE_VALUE;
-		if (exposure_ <= exposure_min_){
-			// decrease gain.
-			again_ -= EXPOSURE_CHANGE_VALUE;
+		if (exposure_ == exposure_max_ && again_ != again_min_){
+			again_ -= EXPOSURE_CHANGE_VALUE
+		}else {
+			exposure_ -= EXPOSURE_CHANGE_VALUE;
 		}
+		// Exposure needs to be lower.
+		
 	}
 
 	// Clamp exposure value between max and min value it's allowed to be.
