@@ -157,14 +157,12 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Calculate default offset for each region.
 	std::size_t const offset = histLuminance.size() / 5; // Point of failure. This could result in weird behavior since it's dividing a power of 2 by 5.
 	
-	// Mark beginning.
-	std::vector<int>::iterator it = histLuminance.begin();
-
 	for(int i = 0; i <= 4; i++){
-		unsigned Xi = std::accumulate(histLuminance.begin() + offset * i,histLuminance.begin() + offset * (i + 1),0);
-		it += offset;
+		unsigned Xi = std::accumulate(histLuminance.begin() + offset * i,histLuminance.begin() + offset * (i+1),0);
+
 		Num += Xi * (i + 1);
-		LOG(IPASimple, Debug) << "Xi: " << Xi;
+
+		LOG(IPASimple, Debug) << "BeginOffset: " << offset * i << " EndOffset: " << offset * (i+1) << " Num: " << Num;
 	}
 
 	// Correctly exposed when val = 2.5
