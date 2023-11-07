@@ -52,7 +52,7 @@ public:
 
 private:
 	void update_exposure(double ev_adjustment);
-	void update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue);
+	void update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue, std::vector<int> histLuminance);
 
 	SharedFD fd_;
 	Statistics *stats_;
