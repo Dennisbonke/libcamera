@@ -186,9 +186,9 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	else if (exposure_ < exposure_min_) exposure_ = exposure_min_;
 
 	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
-	optimalGain = 1.0;
+	again_ = 1.0;
 
-	LOG(IPASimple, Debug) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << optimalGain;
+	LOG(IPASimple, Debug) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << again_;
 }
 
 void IPASimple::processStats(const ControlList &sensorControls)
