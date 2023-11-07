@@ -17,6 +17,10 @@
 
 #include "libcamera/internal/camera_sensor.h"
 #include "libcamera/internal/soft_isp/statistics.h"
+#include <numeric>
+
+#define EXPOSURE_SATISFACTORY_OFFSET 0.2
+#define EXPOSURE_CHANGE_VALUE 30
 
 namespace libcamera {
 
@@ -48,7 +52,7 @@ public:
 
 private:
 	void update_exposure(double ev_adjustment);
-	void update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue);
+	void update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue, std::vector<int> histLuminance);
 
 	SharedFD fd_;
 	Statistics *stats_;
@@ -138,35 +142,71 @@ void IPASimple::update_exposure(double ev_adjustment)
 			      << ", real EV = " << (double)again_ * exposure_;
 }
 
-void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue) {
-	int redPeak = std::distance(histRed.begin(), std::max_element(histRed.begin(), histRed.end()));
+void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> histGreenRed, std::vector<int> histGreenBlue, std::vector<int> histBlue, std::vector<int> histLuminance) {
 
-	// Find peaks in green-red histogram
-	int greenRedPeak = std::distance(histGreenRed.begin(), std::max_element(histGreenRed.begin(), histGreenRed.end()));
+	(void)histRed;
+	(void)histGreenRed;
+	(void)histGreenBlue;
+	(void)histBlue;
 
-	// Find peaks in green-blue histogram
-	int greenBluePeak = std::distance(histGreenBlue.begin(), std::max_element(histGreenBlue.begin(), histGreenBlue.end()));
+	std::size_t const offset = histLuminance.size()/5;
 
-	// Find peaks in blue histogram
-	int bluePeak = std::distance(histBlue.begin(), std::max_element(histBlue.begin(), histBlue.end()));
+	unsigned Num = 0;
 
-	// Calculate exposure and gain based on the peaks
-	int maxPeak = std::max({redPeak, greenRedPeak, greenBluePeak, bluePeak});
-	int minPeak = std::min({redPeak, greenRedPeak, greenBluePeak, bluePeak});
+	// Totals up all luminance values.
+	unsigned Denom = std::accumulate(histLuminance.begin(),histLuminance.end(),0);
 
-	// optimalGain = 1.0; // Set default gain (can be adjusted based on camera properties)
-	exposure_ = maxPeak - minPeak;
-	if(exposure_ > exposure_max_)
-		exposure_ = exposure_max_;
-	else if(exposure_ < exposure_min_)
-		exposure_ = exposure_min_;
-	again_ = again_max_;
+	// Calculates Numerator
+	for(int i = 0; i <= 4; i++){
+		std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
+		std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
 
-	// (void)histRed;
-	// (void)histGreenRed;
-	// (void)histGreenBlue;
-	// (void)histBlue;
-	LOG(IPASimple, Debug) << "update_exposure2 called!";
+		unsigned Xi = std::accumulate(beginIterator,endIterator,0);
+
+		Num += Xi * (i + 1);
+	}
+
+	// Correctly exposed when val = 2.5
+	float val = (float)Num / Denom;
+
+	// Algorithm will be satisfied if val is less than EXPOSURE_SATISFACTORY_OFFSET away from 2.5 (which is optimal)
+	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
+
+	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
+
+		// Exposure needs to be higher.
+		exposure_ += EXPOSURE_CHANGE_VALUE;
+
+		if (exposure_ >= exposure_max_){
+			// Increase gain.
+			again_ += EXPOSURE_CHANGE_VALUE;
+		}
+	}
+	
+	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
+
+		// If exposure is maximum, and gain is not minimum, decrease gain.
+		if (exposure_ == exposure_max_ && again_ != again_min_){
+			again_ -= EXPOSURE_CHANGE_VALUE;
+		}else {
+			exposure_ -= EXPOSURE_CHANGE_VALUE;
+		}
+		// Exposure needs to be lower.
+		
+	}
+
+	// Clamp exposure value between max and min value it's allowed to be.
+	if (exposure_ > exposure_max_) exposure_ = exposure_max_;
+	else if (exposure_ < exposure_min_) exposure_ = exposure_min_;
+	
+	// Clamp gain value between max and min value it's allowed to be.
+	if (again_ > again_max_) again_ = again_max_;
+	else if (again_ < again_min_) again_ = again_min_;
+
+	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
+	//again_ = 1.0;
+
+	LOG(IPASimple, Debug) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << again_;
 }
 
 void IPASimple::processStats(const ControlList &sensorControls)
@@ -213,7 +253,7 @@ void IPASimple::processStats(const ControlList &sensorControls)
 #else
 	exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
 	again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
-	update_exposure2(stats_->histRed, stats_->histGreenRed, stats_->histGreenBlue, stats_->histBlue);
+	update_exposure2(stats_->histRed, stats_->histGreenRed, stats_->histGreenBlue, stats_->histBlue, stats_->histLuminance);
 	ctrls.set(V4L2_CID_EXPOSURE, exposure_);
 	ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
 

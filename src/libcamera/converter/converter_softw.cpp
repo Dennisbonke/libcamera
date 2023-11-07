@@ -265,7 +265,7 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 	debayer(out.planes()[0].data(), in.planes()[0].data());
 	metadata.planes()[0].bytesused = out.planes()[0].size();
 
-	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_, histRed_, histGreenRed_, histGreenBlue_, histBlue_);
+	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_, histRed_, histGreenRed_, histGreenBlue_, histBlue_, histLuminance_);
 
 	converter_->outputBufferReady.emit(output);
 	converter_->inputBufferReady.emit(input);
@@ -302,6 +302,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	std::vector<int> histGreenRed(256, 0);
 	std::vector<int> histGreenBlue(256, 0);
 	std::vector<int> histBlue(256, 0);
+	std::vector<int> histLuminance(256, 0);
 
 	for (int y = 0; y < h_out; y++) {
 		const uint8_t *pin_base = src + (y + 1) * stride_;
@@ -422,6 +423,8 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 				val = val * rNumerat_ / rDenomin_;
 				*pout++ = (uint8_t)std::min(val, 0xffU);
 			}
+			// Add 1 to luminance value bin in luminance histogram
+			histLuminance[std::min(y_val/256, 0xffU)] += 1;
 		}
 	}
 
@@ -432,6 +435,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	histGreenRed_ = histGreenRed;
 	histGreenBlue_ = histGreenBlue;
 	histBlue_ = histBlue;
+	histLuminance_ = histLuminance;
 {
 	static int xxx = 75;
 	if (--xxx == 0) {
