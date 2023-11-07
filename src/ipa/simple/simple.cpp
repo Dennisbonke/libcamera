@@ -170,7 +170,9 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	}
 
 	for(int i = 0; i <= 4; i++){
+		
 		Num += binbin[i] * (i + 1);
+		LOG(IPASimple, Debug) << "Bin: " << binbin[i] << " Num: " << Num;
 	}
 
 	// for(int i = 0; i <= 4; i++){
