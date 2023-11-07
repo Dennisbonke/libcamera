@@ -169,7 +169,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Correctly exposed when val = 2.5
 
 	float val = (float)Num / Denom;
-	LOG(IPASimple, Debug) << "Value: " << val;
+	LOG(IPASimple, Debug) << "Value: " << val << " Numerator: " << (float)Num << " Denominator: " << Denom;
 	// Algorithm will be satisfied if val is less than EXPOSURE_SATISFACTORY_OFFSET away from 2.5 (which is optimal)
 	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
 	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
