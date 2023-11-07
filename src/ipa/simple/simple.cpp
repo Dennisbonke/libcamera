@@ -155,10 +155,14 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	unsigned Denom = std::accumulate(histLuminance.begin(),histLuminance.end(),0);
 	
 	// Calculate default offset for each region.
-	std::size_t const offset = histLuminance.size() / 5; // Point of failure. This could result in weird behavior since it's dividing a power of 2 by 5.
+	size_t const offset = histLuminance.size() / 5; // Point of failure. This could result in weird behavior since it's dividing a power of 2 by 5.
 	
 	for(int i = 0; i <= 4; i++){
-		unsigned Xi = std::accumulate(histLuminance.begin() + offset * i,histLuminance.begin() + offset * (i+1),0);
+		
+		std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
+		std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
+
+		unsigned Xi = std::accumulate(beginIterator,endIterator,0);
 
 		Num += Xi * (i + 1);
 
