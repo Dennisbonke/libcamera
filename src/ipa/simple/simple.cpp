@@ -166,7 +166,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 
 		Num += Xi * (i + 1);
 
-		LOG(IPASimple, Debug) << "BeginOffset: " << offset * i << " EndOffset: " << offset * (i+1) << " Num: " << Num;
+		LOG(IPASimple, Debug) << "Begin: " << *beginIterator << " End: " << *endIterator << " Num: " << Num;
 	}
 
 	// Correctly exposed when val = 2.5
