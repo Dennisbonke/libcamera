@@ -17,7 +17,7 @@
 
 #include "libcamera/internal/camera_sensor.h"
 #include "libcamera/internal/soft_isp/statistics.h"
-
+#include <numeric>
 
 #define EXPOSURE_SATISFACTORY_OFFSET 0.2
 #define EXPOSURE_CHANGE_VALUE 1
@@ -183,7 +183,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
 	optimalGain = 1.0;
 
-	LOG(IPASimple, Debug) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << gain_;
+	LOG(IPASimple, Debug) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << optimalGain;
 }
 
 void IPASimple::processStats(const ControlList &sensorControls)
