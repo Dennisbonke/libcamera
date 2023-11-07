@@ -435,7 +435,7 @@ void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
 	histGreenRed_ = histGreenRed;
 	histGreenBlue_ = histGreenBlue;
 	histBlue_ = histBlue;
-	histLuminance_ = histLuminance;
+	histLuminance_ = histLuminance / 256;
 {
 	static int xxx = 75;
 	if (--xxx == 0) {
