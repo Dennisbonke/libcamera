@@ -164,6 +164,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 		unsigned Xi = std::accumulate(it,it+offset-1,0);
 		it += offset;
 		Num += Xi * (i + 1);
+		LOG(IPASimple, Debug) << "Xi: " << Xi;
 	}
 
 	// Correctly exposed when val = 2.5
