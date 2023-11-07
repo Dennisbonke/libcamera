@@ -157,20 +157,37 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Calculate default offset for each region.
 	size_t const offset = histLuminance.size() / 5; // Point of failure. This could result in weird behavior since it's dividing a power of 2 by 5.
 	(void) offset;
-	for(int i = 0; i <= 4; i++){
-		
-		//std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
-		//std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
 
-		std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
-		std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
+	size_t const histSize = histLuminance.size();
 
-		unsigned Xi = std::accumulate(beginIterator,endIterator,0);
+	int offset = histSize/5;
 
-		Num += Xi * (i + 1);
+	unsigned binbin[] = {0,0,0,0,0}
 
-		LOG(IPASimple, Debug) << "Begin: " << *beginIterator << " End: " << *endIterator << " Num: " << Num;
+	for(unsigned int i = 0; i < histSize; i++)
+	{
+		binbin[i/offset] += histLuminance[i];
 	}
+
+	for(int i = 0; i <= 4; i++){
+		Num += binbin[i] * (i + 1);
+	}
+
+	// for(int i = 0; i <= 4; i++){
+		
+	// 	//std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
+	// 	//std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
+
+	// 	std::vector<int>::iterator beginIterator = histLuminance.begin() + offset * i;
+	// 	std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
+
+	// 	unsigned Xi = std::accumulate(beginIterator,endIterator,0);
+
+	// 	Num += Xi * (i + 1);
+
+	// 	LOG(IPASimple, Debug) << "Begin: " << *beginIterator << " End: " << *endIterator << " Num: " << Num;
+	// }
+
 
 	// Correctly exposed when val = 2.5
 
