@@ -161,10 +161,10 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	std::vector<int>::iterator it = histLuminance.begin();
 
 	for(int i = 0; i <= 4; i++){
-		unsigned Xi = std::accumulate(histLuminance.begin(),histLuminance.end(),0);
+		unsigned Xi = std::accumulate(histLuminance.begin() + offset * i,histLuminance.begin() + offset * (i + 1),0);
 		it += offset;
 		Num += Xi * (i + 1);
-		LOG(IPASimple, Debug) << "it: " << *it << " offset: " << offset;
+		LOG(IPASimple, Debug) << "Xi: " << Xi;
 	}
 
 	// Correctly exposed when val = 2.5
