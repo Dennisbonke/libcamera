@@ -173,6 +173,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Algorithm will be satisfied if val is less than EXPOSURE_SATISFACTORY_OFFSET away from 2.5 (which is optimal)
 	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
 	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
+		LOG(IPASimple, Debug) << "UNDEREXPOSED!!!!";
 		// Exposure needs to be higher.
 		exposure_ += EXPOSURE_CHANGE_VALUE;
 		if (exposure_ >= exposure_max_){
@@ -181,6 +182,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 		}
 	}
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
+		LOG(IPASimple, Debug) << "OVEREXPOSED!!!!";
 		if (exposure_ == exposure_max_ && again_ != again_min_){
 			again_ -= EXPOSURE_CHANGE_VALUE;
 		}else {
