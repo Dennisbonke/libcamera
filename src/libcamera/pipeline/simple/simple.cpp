@@ -203,6 +203,7 @@ static const SimplePipelineInfo supportedDevices[] = {
 	{ "qcom-camss", { { "software", 1 } } },
 	{ "sun6i-csi", {} },
 	{ "intel-ipu6", { { "software", 1 } } },
+//	{ "intel-ipu6", { } },
 };
 
 } /* namespace */
@@ -349,7 +350,7 @@ protected:
 	int queueRequestDevice(Camera *camera, Request *request) override;
 
 private:
-	static constexpr unsigned int kNumInternalBuffers = 3;
+	static constexpr unsigned int kNumInternalBuffers = 5;
 
 	struct EntityData {
 		std::unique_ptr<V4L2VideoDevice> video;
