@@ -349,7 +349,7 @@ protected:
 	int queueRequestDevice(Camera *camera, Request *request) override;
 
 private:
-	static constexpr unsigned int kNumInternalBuffers = 3;
+	static constexpr unsigned int kNumInternalBuffers = 5; // Used to be 3, not too sure if it breaks something on Dennis' laptop.
 
 	struct EntityData {
 		std::unique_ptr<V4L2VideoDevice> video;

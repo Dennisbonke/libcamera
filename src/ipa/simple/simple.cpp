@@ -226,7 +226,7 @@ void IPASimple::processStats(const ControlList &sensorControls)
 		return;
 	}
 
-#if 0
+#if 1
 	if (stats_->bright_ratio < 0.01) ev_adjustment = 1.1;
 	if (stats_->too_bright_ratio > 0.04) ev_adjustment = 0.9;
 
