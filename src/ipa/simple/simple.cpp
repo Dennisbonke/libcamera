@@ -149,6 +149,8 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	(void)histGreenBlue;
 	(void)histBlue;
 
+	std::size_t const offset = histLuminance.size()/5;
+
 	unsigned Num = 0;
 
 	// Totals up all luminance values.
