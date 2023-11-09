@@ -17,6 +17,7 @@
 
 #include <libcamera/pixel_format.h>
 
+#include "libcamera/internal/bayer_format.h"
 #include "libcamera/internal/converter.h"
 
 namespace libcamera {
@@ -72,8 +73,8 @@ private:
 		void stop();
 
 	private:
-		void debayer(uint8_t *dst, const uint8_t *src);
-
+		void debayerP(uint8_t *dst, const uint8_t *src);
+		void debayerNP(uint8_t *dst, const uint8_t *src);
 		SwConverter *converter_;
 
 		Thread thread_;
@@ -86,6 +87,8 @@ private:
 		unsigned long rNumerat_, rDenomin_; /* red gain for AWB */
 		unsigned long bNumerat_, bDenomin_; /* blue gain for AWB */
 		unsigned long gNumerat_, gDenomin_; /* green gain for AWB */
+
+		BayerFormat::Packing Packed;
 
 		float bright_ratio_;		/* 0.0 to 1.0 (1.0 == 100%) */
 		float too_bright_ratio_;	/* 0.0 to 1.0 */

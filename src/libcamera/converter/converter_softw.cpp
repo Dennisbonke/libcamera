@@ -104,6 +104,8 @@ int SwConverter::Isp::configure(const StreamConfiguration &inputCfg,
 		return -EINVAL;
 	}
 
+	Packed = bayerFormat.packing;
+
 	switch (bayerFormat.order) {
 	case BayerFormat::BGGR:
 		red_shift_ = Point(0, 0);
@@ -261,8 +263,17 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 		converter_->inputBufferReady.emit(input);
 		return;
 	}
+	
+	if(Packed == BayerFormat::Packing::CSI2){
+		debayerP(out.planes()[0].data(), in.planes()[0].data());
+	} 
+	else if (Packed == BayerFormat::Packing::None)
+	{
+		debayerNP(out.planes()[0].data(), in.planes()[0].data());
+	} else {
+		LOG(Converter, Error) << "Packing format not recognized.";
+	}
 
-	debayer(out.planes()[0].data(), in.planes()[0].data());
 	metadata.planes()[0].bytesused = out.planes()[0].size();
 
 	converter_->agcDataReady.emit(bright_ratio_, too_bright_ratio_, histRed_, histGreenRed_, histGreenBlue_, histBlue_, histLuminance_);
@@ -278,7 +289,210 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 #define GREEN_Y_MUL	150	/* 0.59 * 256 */
 #define BLUE_Y_MUL	29	/* 0.11 * 256 */
 
-void SwConverter::Isp::debayer(uint8_t *dst, const uint8_t *src)
+void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
+{
+	histRed_.clear();
+	histGreenRed_.clear();
+	histGreenBlue_.clear();
+	histBlue_.clear();
+	/* RAW10P input format is assumed */
+
+	/* output buffer is in BGR24 format and is of (width-2)*(height-2) */
+
+	int w_out = width_ - 2;
+	int h_out = height_ - 2;
+
+	unsigned long sumR = 0;
+	unsigned long sumB = 0;
+	unsigned long sumG = 0;
+
+	unsigned long bright_sum = 0;
+	unsigned long too_bright_sum = 0;
+
+	std::vector<int> histRed(256, 0);
+	std::vector<int> histGreenRed(256, 0);
+	std::vector<int> histGreenBlue(256, 0);
+	std::vector<int> histBlue(256, 0);
+	std::vector<int> histLuminance(256, 0);
+
+	for (int y = 0; y < h_out; y++) {
+		const uint8_t *pin_base = src + (y + 1) * stride_;
+		uint8_t *pout = dst + y * w_out * 3;
+		int phase_y = (y + red_shift_.y) % 2;
+
+		for (int x = 0; x < w_out; x++) {
+			int phase_x = (x + red_shift_.x) % 2;
+			int phase = 2 * phase_y + phase_x;
+
+			/* x part of the offset in the input buffer: */
+			int x_m1 = x + x / 4;		/* offset for (x-1) */
+			int x_0 = x + 1 + (x + 1) / 4;	/* offset for x */
+			int x_p1 = x + 2 + (x + 2) / 4;	/* offset for (x+1) */
+			/* the colour component value to write to the output */
+			unsigned val;
+			/* Y value times 256 */
+			unsigned y_val;
+
+			switch (phase) {
+			case 0: /* at R pixel */
+				/* blue: ((-1,-1)+(1,-1)+(-1,1)+(1,1)) / 4 */
+				val = ( *(pin_base + x_m1 - stride_)
+					+ *(pin_base + x_p1 - stride_)
+					+ *(pin_base + x_m1 + stride_)
+					+ *(pin_base + x_p1 + stride_) ) >> 2;
+				y_val = BLUE_Y_MUL * val;
+				val = val * bNumerat_ / bDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
+				val = ( *(pin_base + x_0 - stride_)
+					+ *(pin_base + x_p1)
+					+ *(pin_base + x_m1)
+					+ *(pin_base + x_0 + stride_) ) >> 2;
+				val = val * gNumerat_ / gDenomin_;
+				y_val += GREEN_Y_MUL * val;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* red: (0,0) */
+				val = *(pin_base + x_0);
+				sumR += val;
+				y_val += RED_Y_MUL * val;
+				if (y_val > BRIGHT_LVL) ++bright_sum;
+				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+				val = val * rNumerat_ / rDenomin_;
+				histRed[std::min(val, 0xffU)] += 1;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				break;
+			case 1: /* at Gr pixel */
+				/* blue: ((0,-1) + (0,1)) / 2 */
+				val = ( *(pin_base + x_0 - stride_)
+					+ *(pin_base + x_0 + stride_) ) >> 1;
+				y_val = BLUE_Y_MUL * val;
+				val = val * bNumerat_ / bDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* green: (0,0) */
+				val = *(pin_base + x_0);
+				sumG += val;
+				y_val += GREEN_Y_MUL * val;
+				val = val * gNumerat_ / gDenomin_;
+				histGreenRed[std::min(val, 0xffU)] += 1;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* red: ((-1,0) + (1,0)) / 2 */
+				val = ( *(pin_base + x_m1)
+					+ *(pin_base + x_p1) ) >> 1;
+				y_val += RED_Y_MUL * val;
+				if (y_val > BRIGHT_LVL) ++bright_sum;
+				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+				val = val * rNumerat_ / rDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				break;
+			case 2: /* at Gb pixel */
+				/* blue: ((-1,0) + (1,0)) / 2 */
+				val = ( *(pin_base + x_m1)
+					+ *(pin_base + x_p1) ) >> 1;
+				y_val = BLUE_Y_MUL * val;
+				val = val * bNumerat_ / bDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* green: (0,0) */
+				val = *(pin_base + x_0);
+				sumG += val;
+				y_val += GREEN_Y_MUL * val;
+				val = val * gNumerat_ / gDenomin_;
+				histGreenBlue[std::min(val, 0xffU)] += 1;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* red: ((0,-1) + (0,1)) / 2 */
+				val = ( *(pin_base + x_0 - stride_)
+					+ *(pin_base + x_0 + stride_) ) >> 1;
+				y_val += RED_Y_MUL * val;
+				if (y_val > BRIGHT_LVL) ++bright_sum;
+				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+				val = val * rNumerat_ / rDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				break;
+			default: /* at B pixel */
+				/* blue: (0,0) */
+				val = *(pin_base + x_0);
+				sumB += val;
+				y_val = BLUE_Y_MUL * val;
+				val = val * bNumerat_ / bDenomin_;
+				histBlue[std::min(val, 0xffU)] += 1;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
+				val = ( *(pin_base + x_0 - stride_)
+					+ *(pin_base + x_p1)
+					+ *(pin_base + x_m1)
+					+ *(pin_base + x_0 + stride_) ) >> 2;
+				y_val += GREEN_Y_MUL * val;
+				val = val * gNumerat_ / gDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+				/* red: ((-1,-1)+(1,-1)+(-1,1)+(1,1)) / 4 */
+				val = ( *(pin_base + x_m1 - stride_)
+					+ *(pin_base + x_p1 - stride_)
+					+ *(pin_base + x_m1 + stride_)
+					+ *(pin_base + x_p1 + stride_) ) >> 2;
+				y_val += RED_Y_MUL * val;
+				if (y_val > BRIGHT_LVL) ++bright_sum;
+				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+				val = val * rNumerat_ / rDenomin_;
+				*pout++ = (uint8_t)std::min(val, 0xffU);
+			}
+			// Add 1 to luminance value bin in luminance histogram
+			histLuminance[std::min(y_val/256, 0xffU)] += 1;
+		}
+	}
+
+	/* calculate the fractions of "bright" and "too bright" pixels */
+	bright_ratio_ = (float)bright_sum / (h_out * w_out);
+	too_bright_ratio_ = (float)too_bright_sum / (h_out * w_out);
+	histRed_ = histRed;
+	histGreenRed_ = histGreenRed;
+	histGreenBlue_ = histGreenBlue;
+	histBlue_ = histBlue;
+	histLuminance_ = histLuminance;
+{
+	static int xxx = 75;
+	if (--xxx == 0) {
+	xxx = 75;
+	LOG(Converter, Info) << "bright_ratio_ = " << bright_ratio_
+			      << ", too_bright_ratio_ = " << too_bright_ratio_;
+	}
+}
+
+	/* calculate red and blue gains for simple AWB */
+	LOG(Converter, Debug) << "sumR = " << sumR
+			      << ", sumB = " << sumB << ", sumG = " << sumG;
+
+	sumG /= 2; /* the number of G pixels is twice as big vs R and B ones */
+
+	/* normalize red, blue, and green sums to fit into 22-bit value */
+	unsigned long fRed = sumR / 0x400000;
+	unsigned long fBlue = sumB / 0x400000;
+	unsigned long fGreen = sumG / 0x400000;
+	unsigned long fNorm = std::max({ 1UL, fRed, fBlue, fGreen });
+	sumR /= fNorm;
+	sumB /= fNorm;
+	sumG /= fNorm;
+
+	LOG(Converter, Debug) << "fNorm = " << fNorm;
+	LOG(Converter, Debug) << "Normalized: sumR = " << sumR
+			      << ", sumB= " << sumB << ", sumG = " << sumG;
+
+	/* make sure red/blue gains never exceed approximately 256 */
+	unsigned long minDenom;
+	rNumerat_ = (sumR + sumB + sumG) / 3;
+	minDenom = rNumerat_ / 0x100;
+	rDenomin_ = std::max(minDenom, sumR);
+	bNumerat_ = rNumerat_;
+	bDenomin_ = std::max(minDenom, sumB);
+	gNumerat_ = rNumerat_;
+	gDenomin_ = std::max(minDenom, sumG);
+
+	LOG(Converter, Debug) << "rGain = [ "
+			      << rNumerat_ << " / " << rDenomin_
+			      << " ], bGain = [ " << bNumerat_ << " / " << bDenomin_
+			      << " ], gGain = [ " << gNumerat_ << " / " << gDenomin_
+			      << " (minDenom = " << minDenom << ")";
+}
+
+void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 {
 	histRed_.clear();
 	histGreenRed_.clear();
