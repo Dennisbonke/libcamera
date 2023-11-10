@@ -495,7 +495,6 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 }
 
 uint16_t* SwConverter::Isp::readByteFromCamera(const uint8_t *pin_base){
-
 	return (uint16_t*)pin_base;
 }
 
@@ -564,9 +563,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 				case 1:// Red (1,0)
 					/* blue: ((2,0) + (-2,0) + (0,2) + (0,-2))/4 */
 					blue = (*readByteFromCamera(pin_base + x_p2) +
-							 *readByteFromCamera(pin_base + x_m2)+
-							 *readByteFromCamera(pin_base + x_0 + stride_) +
-							 *readByteFromCamera(pin_base + x_0 - stride_)) >> 1;
+							 *readByteFromCamera(pin_base + x_m2)) >> 1;
 
 					/* green: ((1,0) + (-1,0) + (0,1) + (0,-1))/4 */
 					green = (*readByteFromCamera(pin_base + x_p1) +
@@ -578,30 +575,120 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 
 					break;
 				case 2:// Green (2,0)
-					/* blue: (1,0) */
-					blue = *readByteFromCamera(pin_base + x_p1);
-					/* green: (0,0) */
-					green = *readByteFromCamera(pin_base + x_0);
-					/* red: (-1,0) */
-					red = *readByteFromCamera(pin_base + x_m1);
-					
+					blue = *readByteFromCamera(pin_base + x_p1);/* blue: (1,0) */
+					green = *readByteFromCamera(pin_base + x_0);/* green: (0,0) */
+					red = *readByteFromCamera(pin_base + x_m1);/* red: (-1,0) */
 					break;
 
 				case 3:// Blue (3,0)
 					/* blue: (1,0) */
 					blue = *readByteFromCamera(pin_base + x_0);
-
 					/* green: ((1,0) + (-1,0) + (0,1) + (0,-1))/4 */
 					green = (*readByteFromCamera(pin_base + x_p1) +
 							 *readByteFromCamera(pin_base + x_m1) +
 							 *readByteFromCamera(pin_base + x_0 + stride_) +
 							 *readByteFromCamera(pin_base + x_0 - stride_)) >> 2;
-
 					/* red: (-1,0) */
 					red = (*readByteFromCamera(pin_base + x_p2) +
 						   *readByteFromCamera(pin_base + x_m2)) >> 1;
-
-
+					break;
+				case 4:
+					/* blue[(1, 1), (-1, -1)] */
+					blue = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
+					/* green[(1, 0), (-1, 0), (0, 1), (0, -1)] */
+					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 + stride_) + *readByteFromCamera(pin_base + x_0 - stride_)) >> 2;
+					/* red[(-1, 1), (1, -1)] */
+					red = (*readByteFromCamera(pin_base + x_m1 + stride_) + *readByteFromCamera(pin_base + x_p1 - stride_)) >> 1;
+					break;
+					
+				////EXEPRIMENTAL
+				case 5:
+					/* blue[(0, 1)] */
+					blue = (*readByteFromCamera(pin_base + x_0 + stride_));   
+					/* green[(0, 0)] */
+					green = (*readByteFromCamera(pin_base + x_0));
+					/* red[(0, -1)] */
+					red = (*readByteFromCamera(pin_base + x_0 - stride_));    
+					break;
+				case 6:
+					/* blue[(-1, 1), (1, -1)] */
+					blue = (*readByteFromCamera(pin_base + x_m1 + stride_) + *readByteFromCamera(pin_base + x_p1 - stride_)) >> 1;
+					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
+					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
+					/* red[(1, 1), (-1, -1)] */
+					red = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
+					break;
+				case 7:
+					/* blue[(0, -1)] */
+					blue = (*readByteFromCamera(pin_base + x_0 - stride_));   
+					/* green[(0, 0)] */
+					green = (*readByteFromCamera(pin_base + x_0));
+					/* red[(0, 1)] */
+					red = (*readByteFromCamera(pin_base + x_0 + stride_));    
+					break;
+				case 8:
+					/* blue[(1, 0)] */
+					blue = (*readByteFromCamera(pin_base + x_p1));
+					/* green[(0, 0)] */
+					green = (*readByteFromCamera(pin_base + x_0));
+					/* red[(-1, 0)] */
+					red = (*readByteFromCamera(pin_base + x_m1));
+					break;
+				case 9:
+					/* blue[(0, 0)] */
+					blue = (*readByteFromCamera(pin_base + x_0));
+					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
+					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
+					/* red[(-2, 0), (2, 0)] */
+					red = (*readByteFromCamera(pin_base + x_m2) + *readByteFromCamera(pin_base + x_p2)) >> 1;
+					break;
+				case 10:
+					/* blue[(-1, 0)] */
+					blue = (*readByteFromCamera(pin_base + x_m1));
+					/* green[(0, 0)] */
+					green = (*readByteFromCamera(pin_base + x_0));
+					/* red[(1, 0)] */
+					red = (*readByteFromCamera(pin_base + x_p1));
+					break;
+				case 11:
+					/* blue[(-2, 0), (2, 0)] */
+					blue = (*readByteFromCamera(pin_base + x_m2) + *readByteFromCamera(pin_base + x_p2)) >> 1;
+					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
+					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
+					/* red[(0, 0)] */
+					red = (*readByteFromCamera(pin_base + x_0));
+					break;
+				case 12:
+					/* blue[(1, -1), (-1, 1)] */
+					blue = (*readByteFromCamera(pin_base + x_p1 - stride_) + *readByteFromCamera(pin_base + x_m1 + stride_)) >> 1;
+					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
+					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
+					/* red[(1, 1), (-1, -1)] */
+					red = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
+					break;
+				case 13:
+					/* blue[(0, -1)] */
+					blue = (*readByteFromCamera(pin_base + x_0 - stride_));   
+					/* green[(0, 0)] */
+					green = (*readByteFromCamera(pin_base + x_0));
+					/* red[(0, 1)] */
+					red = (*readByteFromCamera(pin_base + x_0 + stride_));    
+					break;
+				case 14:
+					/* blue[(1, 1), (-1, -1)] */
+					blue = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
+					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
+					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
+					/* red[(1, -1), (-1, 1)] */
+					red = (*readByteFromCamera(pin_base + x_p1 - stride_) + *readByteFromCamera(pin_base + x_m1 + stride_)) >> 1;
+					break;
+				case 15:
+					/* blue[(0, 1)] */
+					blue = (*readByteFromCamera(pin_base + x_0 + stride_));   
+					/* green[(0, 0)] */
+					green = (*readByteFromCamera(pin_base + x_0));
+					/* red[(0, -1)] */
+					red = (*readByteFromCamera(pin_base + x_0 - stride_));    
 					break;
 				default:
 					red = 0;
@@ -629,39 +716,6 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			histRed[std::min(green, 0xffU)] += 1;
 			histRed[std::min(red, 0xffU)] += 1;
 			histLuminance[std::min(y_val/256, 0xffU)] += 1;
-
-			// switch(phase){
-			// 	case 0:
-				
-			// 	*pout++ = *(pin_base+x*2) >> 2;
-			// 	*pout++ = 0x00;
-			// 	*pout++ = 0x00;
-
-				
-			// 	break;
-			// 	case 1:
-			// 	*pout++ = 0x00;
-			// 	*pout++ = *(pin_base+x*2) >> 2;
-			// 	*pout++ = 0x00;
-			// 	break;
-			// 	case 2:
-			// 	*pout++ = 0x00;
-			// 	*pout++ = *(pin_base+x*2) >> 2;
-			// 	*pout++ = 0x00;
-			// 	break;
-			// 	case 3:
-			// 	*pout++ = 0x00;
-			// 	*pout++ = 0x00;
-			// 	*pout++ = 0x00;
-			// 	break;
-
-			// }
-			
-			
-				
-		
-
-			
 		}
 	}
 
