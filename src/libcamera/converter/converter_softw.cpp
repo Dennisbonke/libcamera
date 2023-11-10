@@ -559,6 +559,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					blue = *readByteFromCamera(pin_base + x_m1);
 					green = *readByteFromCamera(pin_base +x_0);
 					red = *readByteFromCamera(pin_base + x_p1);
+					//sumG += green;
 					break;
 				case 1:// Red (1,0)
 					/* blue: ((2,0) + (-2,0) + (0,2) + (0,-2))/4 */
@@ -572,12 +573,13 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 							 *readByteFromCamera(pin_base + x_0 - stride_)) >> 2;
 
 					red = *readByteFromCamera(pin_base + x_0); /* red: (1,0) */
-
+					//sumR += red;
 					break;
 				case 2:// Green (2,0)
 					blue = *readByteFromCamera(pin_base + x_p1);/* blue: (1,0) */
 					green = *readByteFromCamera(pin_base + x_0);/* green: (0,0) */
 					red = *readByteFromCamera(pin_base + x_m1);/* red: (-1,0) */
+					//sumG += green;
 					break;
 
 				case 3:// Blue (3,0)
@@ -591,8 +593,9 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red: (-1,0) */
 					red = (*readByteFromCamera(pin_base + x_p2) +
 						   *readByteFromCamera(pin_base + x_m2)) >> 1;
+					//sumB += blue;
 					break;
-				case 4:
+				case 4:// Infrared
 					/* blue[(1, 1), (-1, -1)] */
 					blue = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
 					/* green[(1, 0), (-1, 0), (0, 1), (0, -1)] */
@@ -601,16 +604,16 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					red = (*readByteFromCamera(pin_base + x_m1 + stride_) + *readByteFromCamera(pin_base + x_p1 - stride_)) >> 1;
 					break;
 					
-				////EXEPRIMENTAL
-				case 5:
+				case 5:// Green
 					/* blue[(0, 1)] */
 					blue = (*readByteFromCamera(pin_base + x_0 + stride_));   
 					/* green[(0, 0)] */
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(0, -1)] */
-					red = (*readByteFromCamera(pin_base + x_0 - stride_));    
+					red = (*readByteFromCamera(pin_base + x_0 - stride_));
+					//sumG += green;    
 					break;
-				case 6:
+				case 6:// Infrared
 					/* blue[(-1, 1), (1, -1)] */
 					blue = (*readByteFromCamera(pin_base + x_m1 + stride_) + *readByteFromCamera(pin_base + x_p1 - stride_)) >> 1;
 					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
@@ -618,47 +621,53 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(1, 1), (-1, -1)] */
 					red = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
 					break;
-				case 7:
+				case 7:// Green
 					/* blue[(0, -1)] */
 					blue = (*readByteFromCamera(pin_base + x_0 - stride_));   
 					/* green[(0, 0)] */
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(0, 1)] */
-					red = (*readByteFromCamera(pin_base + x_0 + stride_));    
+					red = (*readByteFromCamera(pin_base + x_0 + stride_));
+					//sumG += green;    
 					break;
-				case 8:
+				case 8:// Green
 					/* blue[(1, 0)] */
 					blue = (*readByteFromCamera(pin_base + x_p1));
 					/* green[(0, 0)] */
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(-1, 0)] */
 					red = (*readByteFromCamera(pin_base + x_m1));
+					//sumG += green;
 					break;
-				case 9:
+				case 9:// Blue
 					/* blue[(0, 0)] */
 					blue = (*readByteFromCamera(pin_base + x_0));
 					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
 					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
 					/* red[(-2, 0), (2, 0)] */
 					red = (*readByteFromCamera(pin_base + x_m2) + *readByteFromCamera(pin_base + x_p2)) >> 1;
+					
+					//sumB += blue;
 					break;
-				case 10:
+				case 10:// Green
 					/* blue[(-1, 0)] */
 					blue = (*readByteFromCamera(pin_base + x_m1));
 					/* green[(0, 0)] */
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(1, 0)] */
 					red = (*readByteFromCamera(pin_base + x_p1));
+					//sumG += green;
 					break;
-				case 11:
+				case 11:// Red
 					/* blue[(-2, 0), (2, 0)] */
 					blue = (*readByteFromCamera(pin_base + x_m2) + *readByteFromCamera(pin_base + x_p2)) >> 1;
 					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
 					green = (*readByteFromCamera(pin_base + x_p1) + *readByteFromCamera(pin_base + x_m1) + *readByteFromCamera(pin_base + x_0 - stride_) + *readByteFromCamera(pin_base + x_0 + stride_)) >> 2;
 					/* red[(0, 0)] */
 					red = (*readByteFromCamera(pin_base + x_0));
+					//sumR += red;
 					break;
-				case 12:
+				case 12:// Infrared
 					/* blue[(1, -1), (-1, 1)] */
 					blue = (*readByteFromCamera(pin_base + x_p1 - stride_) + *readByteFromCamera(pin_base + x_m1 + stride_)) >> 1;
 					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
@@ -666,15 +675,16 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(1, 1), (-1, -1)] */
 					red = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
 					break;
-				case 13:
+				case 13:// Green
 					/* blue[(0, -1)] */
 					blue = (*readByteFromCamera(pin_base + x_0 - stride_));   
 					/* green[(0, 0)] */
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(0, 1)] */
-					red = (*readByteFromCamera(pin_base + x_0 + stride_));    
+					red = (*readByteFromCamera(pin_base + x_0 + stride_));
+					//sumG += green;
 					break;
-				case 14:
+				case 14:// Infrared
 					/* blue[(1, 1), (-1, -1)] */
 					blue = (*readByteFromCamera(pin_base + x_p1 + stride_) + *readByteFromCamera(pin_base + x_m1 - stride_)) >> 1;
 					/* green[(1, 0), (-1, 0), (0, -1), (0, 1)] */
@@ -682,13 +692,14 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(1, -1), (-1, 1)] */
 					red = (*readByteFromCamera(pin_base + x_p1 - stride_) + *readByteFromCamera(pin_base + x_m1 + stride_)) >> 1;
 					break;
-				case 15:
+				case 15:// Green
 					/* blue[(0, 1)] */
 					blue = (*readByteFromCamera(pin_base + x_0 + stride_));   
 					/* green[(0, 0)] */
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(0, -1)] */
-					red = (*readByteFromCamera(pin_base + x_0 - stride_));    
+					red = (*readByteFromCamera(pin_base + x_0 - stride_));
+					//sumG += green;
 					break;
 				default:
 					red = 0;
@@ -701,9 +712,12 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			y_val = BLUE_Y_MUL * blue;
 			y_val += GREEN_Y_MUL * green;
 			y_val += RED_Y_MUL * red;
+			sumG += green;
 			sumR += red;
 			sumB += blue;
-			sumG += green;
+			blue = blue * bNumerat_ / bDenomin_;
+			green = green * gNumerat_ / gDenomin_;
+			red = red * rNumerat_ / rDenomin_;
 
 			*pout++ = (uint8_t)std::min(blue, 0xffU);
 			*pout++ = (uint8_t)std::min(green, 0xffU);
@@ -718,144 +732,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			histLuminance[std::min(y_val/256, 0xffU)] += 1;
 		}
 	}
-
-
-	// for (int y = 0; y < h_out; y++) {
-	// 	const uint8_t *pin_base = src + (y + 1) * stride_;
-	// 	uint8_t *pout = dst + y * w_out * 3;
-	// 	int phase_y = (y + red_shift_.y) % 2;
-
-	// 	for (int x = 0; x < w_out; x++) {
-	// 		int phase_x = (x + red_shift_.x) % 2;
-	// 		int phase = 2 * phase_y + phase_x;
-
-	// 		/* x part of the offset in the input buffer: */
-	// 		int x_m1 = 2 * x;		/* offset for (x-1) */
-	// 		int x_0 = 2 * (x + 1);	/* offset for x */
-	// 		int x_p1 = 2 * (x + 2);	/* offset for (x+1) */
-	// 		/* the colour component value to write to the output */
-	// 		unsigned val;
-	// 		/* Y value times 256 */
-	// 		unsigned y_val;
-
-	// 		switch (phase) {
-	// 		case 0: /* at R pixel */
-	// 			/* blue: ((-1,-1)+(1,-1)+(-1,1)+(1,1)) / 4 */
-	// 			val = ( *(pin_base + x_m1 - stride_)
-	// 				+ *(pin_base + x_p1 - stride_)
-	// 				+ *(pin_base + x_m1 + stride_)
-	// 				+ *(pin_base + x_p1 + stride_) ) >> 2;
-	// 			y_val = BLUE_Y_MUL * val;
-	// 			val = val * bNumerat_ / bDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
-	// 			val = ( *(pin_base + x_0 - stride_)
-	// 				+ *(pin_base + x_p1)
-	// 				+ *(pin_base + x_m1)
-	// 				+ *(pin_base + x_0 + stride_) ) >> 2;
-	// 			val = val * gNumerat_ / gDenomin_;
-	// 			val /= 4;
-	// 			y_val += GREEN_Y_MUL * val;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* red: (0,0) */
-	// 			val = *(pin_base + x_0);
-	// 			sumR += val;
-	// 			y_val += RED_Y_MUL * val;
-	// 			if (y_val > BRIGHT_LVL) ++bright_sum;
-	// 			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
-	// 			val = val * rNumerat_ / rDenomin_;
-	// 			val /= 4;
-	// 			histRed[std::min(val, 0xffU)] += 1;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			break;
-	// 		case 1: /* at Gr pixel */
-	// 			/* blue: ((0,-1) + (0,1)) / 2 */
-	// 			val = ( *(pin_base + x_0 - stride_)
-	// 				+ *(pin_base + x_0 + stride_) ) >> 1;
-	// 			y_val = BLUE_Y_MUL * val;
-	// 			val = val * bNumerat_ / bDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* green: (0,0) */
-	// 			val = *(pin_base + x_0);
-	// 			sumG += val;
-	// 			y_val += GREEN_Y_MUL * val;
-	// 			val = val * gNumerat_ / gDenomin_;
-	// 			val /= 4;
-	// 			histGreenRed[std::min(val, 0xffU)] += 1;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* red: ((-1,0) + (1,0)) / 2 */
-	// 			val = ( *(pin_base + x_m1)
-	// 				+ *(pin_base + x_p1) ) >> 1;
-	// 			y_val += RED_Y_MUL * val;
-	// 			if (y_val > BRIGHT_LVL) ++bright_sum;
-	// 			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
-	// 			val = val * rNumerat_ / rDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			break;
-	// 		case 2: /* at Gb pixel */
-	// 			/* blue: ((-1,0) + (1,0)) / 2 */
-	// 			val = ( *(pin_base + x_m1)
-	// 				+ *(pin_base + x_p1) ) >> 1;
-	// 			y_val = BLUE_Y_MUL * val;
-	// 			val = val * bNumerat_ / bDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* green: (0,0) */
-	// 			val = *(pin_base + x_0);
-	// 			sumG += val;
-	// 			y_val += GREEN_Y_MUL * val;
-	// 			val = val * gNumerat_ / gDenomin_;
-	// 			val /= 4;
-	// 			histGreenBlue[std::min(val, 0xffU)] += 1;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* red: ((0,-1) + (0,1)) / 2 */
-	// 			val = ( *(pin_base + x_0 - stride_)
-	// 				+ *(pin_base + x_0 + stride_) ) >> 1;
-	// 			y_val += RED_Y_MUL * val;
-	// 			if (y_val > BRIGHT_LVL) ++bright_sum;
-	// 			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
-	// 			val = val * rNumerat_ / rDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			break;
-	// 		default: /* at B pixel */
-	// 			/* blue: (0,0) */
-	// 			val = *(pin_base + x_0);
-	// 			sumB += val;
-	// 			y_val = BLUE_Y_MUL * val;
-	// 			val = val * bNumerat_ / bDenomin_;
-	// 			val /= 4;
-	// 			histBlue[std::min(val, 0xffU)] += 1;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* green: ((0,-1)+(-1,0)+(1,0)+(0,1)) / 4 */
-	// 			val = ( *(pin_base + x_0 - stride_)
-	// 				+ *(pin_base + x_p1)
-	// 				+ *(pin_base + x_m1)
-	// 				+ *(pin_base + x_0 + stride_) ) >> 2;
-	// 			y_val += GREEN_Y_MUL * val;
-	// 			val = val * gNumerat_ / gDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 			/* red: ((-1,-1)+(1,-1)+(-1,1)+(1,1)) / 4 */
-	// 			val = ( *(pin_base + x_m1 - stride_)
-	// 				+ *(pin_base + x_p1 - stride_)
-	// 				+ *(pin_base + x_m1 + stride_)
-	// 				+ *(pin_base + x_p1 + stride_) ) >> 2;
-	// 			y_val += RED_Y_MUL * val;
-	// 			if (y_val > BRIGHT_LVL) ++bright_sum;
-	// 			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
-	// 			val = val * rNumerat_ / rDenomin_;
-	// 			val /= 4;
-	// 			*pout++ = (uint8_t)std::min(val, 0xffU);
-	// 		}
-	// 		// Add 1 to luminance value bin in luminance histogram
-	// 		histLuminance[std::min(y_val/256, 0xffU)] += 1;
-	// 	}
-	// }
-
+	
 	/* calculate the fractions of "bright" and "too bright" pixels */
 	bright_ratio_ = (float)bright_sum / (h_out * w_out);
 	too_bright_ratio_ = (float)too_bright_sum / (h_out * w_out);
@@ -877,7 +754,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 	LOG(Converter, Debug) << "sumR = " << sumR
 			      << ", sumB = " << sumB << ", sumG = " << sumG;
 
-	sumG /= 2; /* the number of G pixels is twice as big vs R and B ones */
+	//sumG /= 8; /* the number of G pixels is twice as big vs R and B ones */
 
 	/* normalize red, blue, and green sums to fit into 22-bit value */
 	unsigned long fRed = sumR / 0x400000;
