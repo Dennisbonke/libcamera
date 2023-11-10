@@ -75,6 +75,8 @@ private:
 	private:
 		void debayerP(uint8_t *dst, const uint8_t *src);
 		void debayerNP(uint8_t *dst, const uint8_t *src);
+
+		uint16_t* readByteFromCamera(const uint8_t *pin_base);
 		SwConverter *converter_;
 
 		Thread thread_;
