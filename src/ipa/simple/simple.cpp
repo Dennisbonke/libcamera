@@ -19,8 +19,8 @@
 #include "libcamera/internal/soft_isp/statistics.h"
 #include <numeric>
 
-#define EXPOSURE_SATISFACTORY_OFFSET 0.2
-#define EXPOSURE_CHANGE_VALUE 30
+#define EXPOSURE_SATISFACTORY_OFFSET 0.1
+#define EXPOSURE_CHANGE_VALUE 130
 
 namespace libcamera {
 
@@ -149,7 +149,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	(void)histGreenBlue;
 	(void)histBlue;
 
-	std::size_t const offset = histLuminance.size()/5;
+	std::size_t const offset = histLuminance.size()/5 + 1;
 
 	unsigned Num = 0;
 
@@ -162,8 +162,8 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 		std::vector<int>::iterator endIterator = histLuminance.begin() + offset * (i+1);
 
 		unsigned Xi = std::accumulate(beginIterator,endIterator,0);
-
 		Num += Xi * (i + 1);
+		LOG(IPASimple,Debug) << "X" << i << ": " << Xi << " Num: " << Num << " Denom: " << Denom;
 	}
 
 	// Correctly exposed when val = 2.5
@@ -173,7 +173,8 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Algorithm will change exposure by EXPOSURE_CHANGE_VALUE if exposure is not optimal.
 
 	if (val < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
-
+		
+		
 		// Exposure needs to be higher.
 		exposure_ += EXPOSURE_CHANGE_VALUE;
 
@@ -185,6 +186,7 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	
 	if (val > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
 
+		LOG(IPASimple, Debug) << "OVEREXPOSED";
 		// If exposure is maximum, and gain is not minimum, decrease gain.
 		if (exposure_ == exposure_max_ && again_ != again_min_){
 			again_ -= EXPOSURE_CHANGE_VALUE;

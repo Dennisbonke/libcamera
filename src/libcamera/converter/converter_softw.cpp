@@ -519,8 +519,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 	unsigned long too_bright_sum = 0;
 
 	std::vector<int> histRed(256, 0);
-	std::vector<int> histGreenRed(256, 0);
-	std::vector<int> histGreenBlue(256, 0);
+	std::vector<int> histGreen(256, 0);
 	std::vector<int> histBlue(256, 0);
 	std::vector<int> histLuminance(256, 0);
 
@@ -709,26 +708,38 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 
 			}
 
+			green = green/4;
+			red = red/4;
+			blue = blue/4;
+
 			y_val = BLUE_Y_MUL * blue;
 			y_val += GREEN_Y_MUL * green;
 			y_val += RED_Y_MUL * red;
+
 			sumG += green;
 			sumR += red;
 			sumB += blue;
+
+			// White balance is nog niet erg lekker
+
 			blue = blue * bNumerat_ / bDenomin_;
 			green = green * gNumerat_ / gDenomin_;
 			red = red * rNumerat_ / rDenomin_;
 
-			*pout++ = (uint8_t)std::min(blue, 0xffU);
-			*pout++ = (uint8_t)std::min(green, 0xffU);
-			*pout++ = (uint8_t)std::min(red, 0xffU);
+			// *pout++ = (uint8_t)std::min(blue, 0xffU);
+			// *pout++ = (uint8_t)std::min(green, 0xffU);
+			// *pout++ = (uint8_t)std::min(red, 0xffU);
+
+			*pout++ = (uint8_t)blue;
+			*pout++ = (uint8_t)green;
+			*pout++ = (uint8_t)red;
 
 			if (y_val > BRIGHT_LVL) ++bright_sum;
 			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
 
 			histRed[std::min(blue, 0xffU)] += 1;
-			histRed[std::min(green, 0xffU)] += 1;
-			histRed[std::min(red, 0xffU)] += 1;
+			histGreen[std::min(green, 0xffU)] += 1;
+			histBlue[std::min(red, 0xffU)] += 1;
 			histLuminance[std::min(y_val/256, 0xffU)] += 1;
 		}
 	}
@@ -737,8 +748,8 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 	bright_ratio_ = (float)bright_sum / (h_out * w_out);
 	too_bright_ratio_ = (float)too_bright_sum / (h_out * w_out);
 	histRed_ = histRed;
-	histGreenRed_ = histGreenRed;
-	histGreenBlue_ = histGreenBlue;
+	histGreenRed_ = histGreen;
+	histGreenBlue_ = histGreen;
 	histBlue_ = histBlue;
 	histLuminance_ = histLuminance;
 {
@@ -754,7 +765,6 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 	LOG(Converter, Debug) << "sumR = " << sumR
 			      << ", sumB = " << sumB << ", sumG = " << sumG;
 
-	//sumG /= 8; /* the number of G pixels is twice as big vs R and B ones */
 
 	/* normalize red, blue, and green sums to fit into 22-bit value */
 	unsigned long fRed = sumR / 0x400000;
