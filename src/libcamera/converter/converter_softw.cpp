@@ -272,6 +272,7 @@ void SwConverter::Isp::process(FrameBuffer *input, FrameBuffer *output)
 	else if (Packed == BayerFormat::Packing::None)
 	{
 		debayerNP(out.planes()[0].data(), in.planes()[0].data());
+		//debayerInfrarood(out.planes()[0].data(), in.planes()[0].data());
 	} else {
 		LOG(Converter, Error) << "Packing format not recognized.";
 	}
@@ -795,5 +796,179 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			      << " ], gGain = [ " << gNumerat_ << " / " << gDenomin_
 			      << " (minDenom = " << minDenom << ")";
 }
+
+
+
+
+void SwConverter::Isp::debayerInfrarood(uint8_t *dst, const uint8_t *src)
+{
+	histRed_.clear();
+	histGreenRed_.clear();
+	histGreenBlue_.clear();
+	histBlue_.clear();
+	// Debayer GRGB_IGIG_GBGR_IGIG
+
+	/* output buffer is in BGR24 format and is of (width-2)*(height-2) */
+
+	int w_out = width_ - 2;
+	int h_out = height_ - 2;
+
+	unsigned long sumR = 0;
+	unsigned long sumB = 0;
+	unsigned long sumG = 0;
+
+	unsigned long bright_sum = 0;
+	unsigned long too_bright_sum = 0;
+
+	std::vector<int> histRed(256, 0);
+	std::vector<int> histGreen(256, 0);
+	std::vector<int> histBlue(256, 0);
+	std::vector<int> histLuminance(256, 0);
+
+	for (int y = 0; y < h_out; y++){
+		uint8_t *pout = dst + y * w_out * 3;
+		const uint8_t *pin_base = src + (y + 1) * stride_;
+		int phase_y = (y) % 2;
+		for (int x = 0; x < w_out; x++) {
+			int phase_x = (x) % 2;
+	 		//int phase = 2 * phase_y + phase_x;
+	 		int phase = 2 * phase_y + phase_x;
+			(void) phase;
+
+			int x_m2 = 2 * x 	  ;		/* offset for (x-2) */
+			int x_m1 = 2 * (x + 1);	/* offset for (x-1) */
+			int x_0  = 2 * (x + 2);	/* offset for x     */
+			int x_p1 = 2 * (x + 3);	/* offset for (x+1) */
+			int x_p2 = 2 * (x + 4);	/* offset for (x+2) */
+			(void)x_m2;		
+			(void)x_m1;
+			(void)x_0;
+			(void)x_p1;
+			(void)x_p2;		
+			(void)pin_base;
+
+			/* the colour component value to write to the output */
+	 		unsigned val;
+			(void) val;
+			unsigned red = 0,green = 0,blue = 0;
+	 		/* Y value times 256 */
+	 		unsigned y_val = 0;
+
+			switch(phase){
+				case 0:// First green Top Left (0,0)
+					/* blue: (-1,0) */
+					blue = *readByteFromCamera(pin_base + stride_ + x_0);
+					green = *readByteFromCamera(pin_base + stride_ + x_0);
+					red = *readByteFromCamera(pin_base + stride_ + x_0);
+					//sumG += green;
+					break;
+				case 1:// Red (1,0)
+					blue = *readByteFromCamera(pin_base + stride_ + x_m1);
+					green = *readByteFromCamera(pin_base + stride_ + x_m1);
+					red = *readByteFromCamera(pin_base + stride_ + x_m1);
+					break;
+				case 2:// Green (2,0)
+					blue = *readByteFromCamera(pin_base + x_0);
+					green = *readByteFromCamera(pin_base + x_0);
+					red = *readByteFromCamera(pin_base + x_0);
+					break;
+
+				case 3:// Blue (3,0)
+					blue = *readByteFromCamera(pin_base + x_m1);
+					green = *readByteFromCamera(pin_base + x_m1);
+					red = *readByteFromCamera(pin_base + x_m1);
+					break;
+				default:
+					red = 255;
+					green = 0;
+					blue = 0;
+				break;
+
+			}
+
+			green = green/4;
+			red = red/4;
+			blue = blue/4;
+
+			y_val = BLUE_Y_MUL * blue;
+			y_val += GREEN_Y_MUL * green;
+			y_val += RED_Y_MUL * red;
+
+			sumG += green;
+			sumR += red;
+			sumB += blue;
+
+			// White balance is nog niet erg lekker
+
+			// *pout++ = (uint8_t)std::min(blue, 0xffU);
+			// *pout++ = (uint8_t)std::min(green, 0xffU);
+			// *pout++ = (uint8_t)std::min(red, 0xffU);
+
+			*pout++ = (uint8_t)blue;
+			*pout++ = (uint8_t)green;
+			*pout++ = (uint8_t)red;
+
+			if (y_val > BRIGHT_LVL) ++bright_sum;
+			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+
+			histRed[std::min(blue, 0xffU)] += 1;
+			histGreen[std::min(green, 0xffU)] += 1;
+			histBlue[std::min(red, 0xffU)] += 1;
+			histLuminance[std::min(y_val/256, 0xffU)] += 1;
+		}
+	}
+	
+	/* calculate the fractions of "bright" and "too bright" pixels */
+	bright_ratio_ = (float)bright_sum / (h_out * w_out);
+	too_bright_ratio_ = (float)too_bright_sum / (h_out * w_out);
+	histRed_ = histRed;
+	histGreenRed_ = histGreen;
+	histGreenBlue_ = histGreen;
+	histBlue_ = histBlue;
+	histLuminance_ = histLuminance;
+{
+	static int xxx = 75;
+	if (--xxx == 0) {
+	xxx = 75;
+	LOG(Converter, Info) << "bright_ratio_ = " << bright_ratio_
+			      << ", too_bright_ratio_ = " << too_bright_ratio_;
+	}
+}
+
+	/* calculate red and blue gains for simple AWB */
+	LOG(Converter, Debug) << "sumR = " << sumR
+			      << ", sumB = " << sumB << ", sumG = " << sumG;
+
+
+	/* normalize red, blue, and green sums to fit into 22-bit value */
+	unsigned long fRed = sumR / 0x400000;
+	unsigned long fBlue = sumB / 0x400000;
+	unsigned long fGreen = sumG / 0x400000;
+	unsigned long fNorm = std::max({ 1UL, fRed, fBlue, fGreen });
+	sumR /= fNorm;
+	sumB /= fNorm;
+	sumG /= fNorm;
+
+	LOG(Converter, Debug) << "fNorm = " << fNorm;
+	LOG(Converter, Debug) << "Normalized: sumR = " << sumR
+			      << ", sumB= " << sumB << ", sumG = " << sumG;
+
+	/* make sure red/blue gains never exceed approximately 256 */
+	unsigned long minDenom;
+	rNumerat_ = (sumR + sumB + sumG) / 3;
+	minDenom = rNumerat_ / 0x100;
+	rDenomin_ = std::max(minDenom, sumR);
+	bNumerat_ = rNumerat_;
+	bDenomin_ = std::max(minDenom, sumB);
+	gNumerat_ = rNumerat_;
+	gDenomin_ = std::max(minDenom, sumG);
+
+	LOG(Converter, Debug) << "rGain = [ "
+			      << rNumerat_ << " / " << rDenomin_
+			      << " ], bGain = [ " << bNumerat_ << " / " << bDenomin_
+			      << " ], gGain = [ " << gNumerat_ << " / " << gDenomin_
+			      << " (minDenom = " << minDenom << ")";
+}
+
 
 } /* namespace libcamera */

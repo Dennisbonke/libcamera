@@ -196,7 +196,6 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 		// Exposure needs to be lower.
 		
 	}
-
 	// Clamp exposure value between max and min value it's allowed to be.
 	if (exposure_ > exposure_max_) exposure_ = exposure_max_;
 	else if (exposure_ < exposure_min_) exposure_ = exposure_min_;
@@ -204,6 +203,9 @@ void IPASimple::update_exposure2(std::vector<int> histRed, std::vector<int> hist
 	// Clamp gain value between max and min value it's allowed to be.
 	if (again_ > again_max_) again_ = again_max_;
 	else if (again_ < again_min_) again_ = again_min_;
+
+	LOG(IPASimple,Debug) << "again_ = " << again_ << " again_min_ = " << again_min_ << " again_max_ = " << again_max_;
+	LOG(IPASimple,Debug) << "exposure_ = " << exposure_ << " exposure_min_ = " << exposure_min_ << " exposure_max_ = " << exposure_max_;
 
 	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
 	//again_ = 1.0;
