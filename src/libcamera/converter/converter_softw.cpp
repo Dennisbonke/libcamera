@@ -761,12 +761,6 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			      << ", too_bright_ratio_ = " << too_bright_ratio_;
 	}
 }
-
-	/* calculate red, blue and green avg for simple AWB*/
-	g_avg = sumG / green_count;
-	r_avg = sumR / red_count;
-	b_avg = sumB / blue_count;
-
 	/* calculate red and blue gains for simple AWB */
 	// LOG(Converter, Debug) << "sumR = " << sumR
 	// 		      << ", sumB = " << sumB << ", sumG = " << sumG;
