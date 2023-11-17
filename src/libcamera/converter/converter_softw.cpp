@@ -143,6 +143,13 @@ int SwConverter::Isp::configure(const StreamConfiguration &inputCfg,
 	bNumerat_ = bDenomin_ = 1;
 	gNumerat_ = gDenomin_ = 1;
 
+	r_avg = 1;
+	g_avg = 1;
+	b_avg = 1;
+
+	blue_change = 1;
+	red_change = 1;
+
 	histRed_.resize(256, 0);
 	histGreenRed_.resize(256, 0);
 	histGreenBlue_.resize(256, 0);
@@ -516,6 +523,12 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 	unsigned long sumB = 0;
 	unsigned long sumG = 0;
 
+
+	unsigned long red_count = 0;
+	unsigned long green_count = 0;
+	unsigned long blue_count = 0;
+	
+
 	unsigned long bright_sum = 0;
 	unsigned long too_bright_sum = 0;
 
@@ -560,6 +573,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					green = *readByteFromCamera(pin_base +x_0);
 					red = *readByteFromCamera(pin_base + x_p1);
 					sumG += green;
+					green_count++;
 					break;
 				case 1:// Red (1,0)
 					/* blue: ((2,0) + (-2,0) + (0,2) + (0,-2))/4 */
@@ -574,12 +588,14 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 
 					red = *readByteFromCamera(pin_base + x_0); /* red: (1,0) */
 					sumR += red;
+					red_count++;
 					break;
 				case 2:// Green (2,0)
 					blue = *readByteFromCamera(pin_base + x_p1);/* blue: (1,0) */
 					green = *readByteFromCamera(pin_base + x_0);/* green: (0,0) */
 					red = *readByteFromCamera(pin_base + x_m1);/* red: (-1,0) */
 					sumG += green;
+					green_count++;
 					break;
 
 				case 3:// Blue (3,0)
@@ -594,6 +610,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					red = (*readByteFromCamera(pin_base + x_p2) +
 						   *readByteFromCamera(pin_base + x_m2)) >> 1;
 					sumB += blue;
+					blue_count++;
 					break;
 				case 4:// Infrared
 					/* blue[(1, 1), (-1, -1)] */
@@ -611,7 +628,8 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(0, -1)] */
 					red = (*readByteFromCamera(pin_base + x_0 - stride_));
-					sumG += green; 
+					sumG += green;
+					green_count++;
 					break;
 				case 6:// Infrared
 					/* blue[(-1, 1), (1, -1)] */
@@ -628,7 +646,8 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					green = (*readByteFromCamera(pin_base + x_0));
 					/* red[(0, 1)] */
 					red = (*readByteFromCamera(pin_base + x_0 + stride_));
-					sumG += green;  
+					sumG += green;
+					green_count++;
 					break;
 				case 8:// Green
 					/* blue[(1, 0)] */
@@ -638,6 +657,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(-1, 0)] */
 					red = (*readByteFromCamera(pin_base + x_m1));
 					sumG += green;
+					green_count++;
 					break;
 				case 9:// Blue
 					/* blue[(0, 0)] */
@@ -647,6 +667,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(-2, 0), (2, 0)] */
 					red = (*readByteFromCamera(pin_base + x_m2) + *readByteFromCamera(pin_base + x_p2)) >> 1;
 					sumB += blue;
+					blue_count++;
 					break;
 				case 10:// Green
 					/* blue[(-1, 0)] */
@@ -656,6 +677,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(1, 0)] */
 					red = (*readByteFromCamera(pin_base + x_p1));
 					sumG += green;
+					green_count++;
 					break;
 				case 11:// Red
 					/* blue[(-2, 0), (2, 0)] */
@@ -665,6 +687,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(0, 0)] */
 					red = (*readByteFromCamera(pin_base + x_0));
 					sumR += red;
+					red_count++;
 					break;
 				case 12:// Infrared
 					/* blue[(1, -1), (-1, 1)] */
@@ -682,6 +705,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(0, 1)] */
 					red = (*readByteFromCamera(pin_base + x_0 + stride_));
 					sumG += green;
+					green_count++;
 					break;
 				case 14:// Infrared
 					/* blue[(1, 1), (-1, -1)] */
@@ -699,6 +723,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 					/* red[(0, -1)] */
 					red = (*readByteFromCamera(pin_base + x_0 - stride_));
 					sumG += green;
+					green_count++;
 					break;
 				default:
 					red = 0;
@@ -716,16 +741,19 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			y_val += GREEN_Y_MUL * green;
 			y_val += RED_Y_MUL * red;
 
-			sumG /= 4;
+			//sumG;
 			// sumR += red;
 			// sumB += blue;
 
 			// Gray World Theory AWB
 			//green = green * g_avg / g_avg; useless calculation
 			//Corrected Red = Red * R-avg / G-avg
-			red = red * (sumR / sumG);
+			
+			red = (int)(red * red_change);
 			//Corrected Blue = Blue * B-avg / G-avg
-			blue = blue * (sumB / sumG);
+			blue = (int)(blue * blue_change);
+
+			//LOG(Converter,Debug) << "(r_avg / g_avg): " << ((float)r_avg / g_avg);
 
 			// *pout++ = (uint8_t)std::min(blue, 0xffU);
 			// *pout++ = (uint8_t)std::min(green, 0xffU);
@@ -763,10 +791,16 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 }
 
 	/* calculate red, blue and green avg for simple AWB*/
-	g_avg = sumG / green_count;
-	r_avg = sumR / red_count;
-	b_avg = sumB / blue_count;
+	g_avg = (float)sumG / green_count;
+	r_avg = (float)sumR / red_count;
+	b_avg = (float)sumB / blue_count;
 
+	red_change = ((float)r_avg / g_avg);
+	blue_change = ((float)b_avg / g_avg);
+
+
+	LOG(Converter,Debug) << "(r_avg / g_avg): " << red_change;
+	LOG(Converter,Debug) << "(b_avg / g_avg): " << blue_change;
 	/* calculate red and blue gains for simple AWB */
 	// LOG(Converter, Debug) << "sumR = " << sumR
 	// 		      << ", sumB = " << sumB << ", sumG = " << sumG;

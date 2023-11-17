@@ -94,6 +94,12 @@ private:
 
 		BayerFormat::Packing Packed;
 
+		float r_avg;
+		float g_avg;
+		float b_avg;
+		float blue_change;
+		float red_change;
+
 		float bright_ratio_;		/* 0.0 to 1.0 (1.0 == 100%) */
 		float too_bright_ratio_;	/* 0.0 to 1.0 */
 
