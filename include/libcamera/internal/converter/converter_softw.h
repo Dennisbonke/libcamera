@@ -90,12 +90,7 @@ private:
 
 		unsigned long rNumerat_, rDenomin_; /* red gain for AWB */
 		unsigned long bNumerat_, bDenomin_; /* blue gain for AWB */
-		unsigned long gNumerat_, gDenomin_; /* green gain for AWB */
-
-		unsigned long r_avg, red_count; /* red avg and count for AWB */
-		unsigned long b_avg, blue_count; /* blue avg and count for AWB */
-		unsigned long g_avg, green_count; /* green avg and count for AWB */
-		
+		unsigned long gNumerat_, gDenomin_; /* green gain for AWB */		
 
 		BayerFormat::Packing Packed;
 
