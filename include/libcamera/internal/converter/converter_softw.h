@@ -91,6 +91,11 @@ private:
 		unsigned long bNumerat_, bDenomin_; /* blue gain for AWB */
 		unsigned long gNumerat_, gDenomin_; /* green gain for AWB */
 
+		unsigned long r_avg, red_count; /* red avg and count for AWB */
+		unsigned long b_avg, blue_count; /* blue avg and count for AWB */
+		unsigned long g_avg, green_count; /* green avg and count for AWB */
+		
+
 		BayerFormat::Packing Packed;
 
 		float bright_ratio_;		/* 0.0 to 1.0 (1.0 == 100%) */
