@@ -111,6 +111,8 @@ private:
 	};
 
 	std::unique_ptr<Isp> isp_;
+
+	bool isFucked = false;
 };
 
 } /* namespace libcamera */

@@ -38,8 +38,13 @@ std::vector<PixelFormat> SwConverter::formats(PixelFormat input)
 	BayerFormat inputFormat = BayerFormat::fromPixelFormat(input);
 
 	/* Only RAW10P is currently supported */
-	if (inputFormat.bitDepth == 10 && (inputFormat.packing == BayerFormat::Packing::CSI2 || inputFormat.packing == BayerFormat::Packing::None))
-		pixelFormats.push_back(formats::RGB888);
+	if(isFucked) {
+		if (inputFormat.bitDepth == 10 && (inputFormat.packing == BayerFormat::Packing::None))
+			pixelFormats.push_back(formats::RGB888);
+	} else {
+		if (inputFormat.bitDepth == 10 && (inputFormat.packing == BayerFormat::Packing::CSI2))
+			pixelFormats.push_back(formats::RGB888);
+	}
 
 	if (pixelFormats.empty())
 		LOG(Converter, Info)
@@ -55,6 +60,13 @@ SizeRange SwConverter::sizes(const Size &input)
 			<< "Input format size too small: " << input.toString();
 		return {};
 	}
+
+	if(input.width != 1932 || input.height != 1092){
+		isFucked = true;
+		return SizeRange(Size(input.width - 4, input.height - 4));
+	}
+
+	LOG(Converter, Error) << "cringe 1: " << input.width << " and cringe 2: " << input.height;
 
 	return SizeRange(Size(input.width - 2, input.height - 2));
 }
@@ -124,9 +136,9 @@ int SwConverter::Isp::configure(const StreamConfiguration &inputCfg,
 		break;
 	}
 
-	if (outputCfg.size.width != width_ - 2 ||
-	    outputCfg.size.height != height_ - 2 ||
-	    outputCfg.stride != (width_ - 2) * 3 ||
+	if (outputCfg.size.width != width_ - 4 ||
+	    outputCfg.size.height != height_ - 4 ||
+	    outputCfg.stride != (width_ - 4) * 3 ||
 	    outputCfg.pixelFormat != formats::RGB888) {
 		LOG(Converter, Error)
 			<< "Output format not supported";
@@ -172,7 +184,7 @@ int SwConverter::Isp::exportBuffers(unsigned int count,
 				    std::vector<std::unique_ptr<FrameBuffer>> *buffers)
 {
 	/* V4L2_PIX_FMT_BGR24 aka 'BGR3' for output: */
-	unsigned int bufSize = (height_ - 2) * (width_ - 2) * 3;
+	unsigned int bufSize = (height_ - 4) * (width_ - 4) * 3;
 
 	for (unsigned int i = 0; i < count; i++) {
 		std::string name = "frame-" + std::to_string(i);
@@ -539,10 +551,10 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 
 	for (int y = 0; y < h_out; y++){
 		uint8_t *pout = dst + y * w_out * 3;
-		const uint8_t *pin_base = src + (y + 1) * stride_;
-		int phase_y = (y) % 4;
+		const uint8_t *pin_base = src + (y + 2) * stride_;
+		int phase_y = (y+3) % 4;
 		for (int x = 0; x < w_out; x++) {
-			int phase_x = (x) % 4;
+			int phase_x = (x+2) % 4;
 	 		//int phase = 2 * phase_y + phase_x;
 	 		int phase = 4 * phase_y + phase_x;
 			(void) phase;
@@ -749,7 +761,6 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			//green = green * g_avg / g_avg; useless calculation
 			//Corrected Red = Red * R-avg / G-avg
 			
-			red = (int)(red * red_change);
 			//Corrected Blue = Blue * B-avg / G-avg
 
 			red = (int)(red * red_change);
@@ -851,8 +862,8 @@ void SwConverter::Isp::debayerInfrarood(uint8_t *dst, const uint8_t *src)
 
 	/* output buffer is in BGR24 format and is of (width-2)*(height-2) */
 
-	int w_out = width_ - 2;
-	int h_out = height_ - 2;
+	int w_out = width_ - 4;
+	int h_out = height_ - 4;
 
 	unsigned long sumR = 0;
 	unsigned long sumB = 0;
@@ -868,10 +879,10 @@ void SwConverter::Isp::debayerInfrarood(uint8_t *dst, const uint8_t *src)
 
 	for (int y = 0; y < h_out; y++){
 		uint8_t *pout = dst + y * w_out * 3;
-		const uint8_t *pin_base = src + (y + 1) * stride_;
-		int phase_y = (y) % 2;
+		const uint8_t *pin_base = src + (y + 2) * stride_;
+		int phase_y = (y+3) % 2;
 		for (int x = 0; x < w_out; x++) {
-			int phase_x = (x) % 2;
+			int phase_x = (x+2) % 2;
 	 		//int phase = 2 * phase_y + phase_x;
 	 		int phase = 2 * phase_y + phase_x;
 			(void) phase;

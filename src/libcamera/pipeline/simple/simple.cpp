@@ -687,8 +687,8 @@ void SimpleCameraData::tryPipeline(unsigned int code, const Size &size)
 			config.outputFormats = { pixelFormat };
 			config.outputSizes = config.captureSize;
 		} else {
-			config.outputFormats = converter_->formats(pixelFormat);
 			config.outputSizes = converter_->sizes(format.size);
+			config.outputFormats = converter_->formats(pixelFormat);
 		}
 
 		configs_.push_back(config);
