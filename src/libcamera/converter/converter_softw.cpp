@@ -516,8 +516,8 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 
 	/* output buffer is in BGR24 format and is of (width-2)*(height-2) */
 
-	int w_out = width_ - 2;
-	int h_out = height_ - 2;
+	int w_out = width_ - 4;
+	int h_out = height_ - 4;
 
 	unsigned long sumR = 0;
 	unsigned long sumB = 0;
@@ -751,17 +751,19 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			
 			red = (int)(red * red_change);
 			//Corrected Blue = Blue * B-avg / G-avg
-			blue = (int)(blue * blue_change);
 
+			red = (int)(red * red_change);
+			blue = (int)(blue * blue_change);
+			//green *= 0.5;
 			//LOG(Converter,Debug) << "(r_avg / g_avg): " << ((float)r_avg / g_avg);
 
-			// *pout++ = (uint8_t)std::min(blue, 0xffU);
-			// *pout++ = (uint8_t)std::min(green, 0xffU);
-			// *pout++ = (uint8_t)std::min(red, 0xffU);
+			*pout++ = (uint8_t)std::min(blue, 0xffU);
+			*pout++ = (uint8_t)std::min(green, 0xffU);
+			*pout++ = (uint8_t)std::min(red, 0xffU);
 
-			*pout++ = (uint8_t)blue;
-			*pout++ = (uint8_t)green;
-			*pout++ = (uint8_t)red;
+			// *pout++ = (uint8_t)blue;
+			// *pout++ = (uint8_t)green;
+			// *pout++ = (uint8_t)red;
 
 			if (y_val > BRIGHT_LVL) ++bright_sum;
 			if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
@@ -795,8 +797,8 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 	r_avg = (float)sumR / red_count;
 	b_avg = (float)sumB / blue_count;
 
-	red_change = ((float)r_avg / g_avg);
-	blue_change = ((float)b_avg / g_avg);
+	red_change = ((float)g_avg / r_avg);
+	blue_change = ((float)g_avg / b_avg);
 
 
 	LOG(Converter,Debug) << "(r_avg / g_avg): " << red_change;
