@@ -19,7 +19,7 @@
 #include "libcamera/internal/soft_isp/statistics.h"
 #include <numeric>
 
-#define EXPOSURE_SATISFACTORY_OFFSET 0.1
+#define EXPOSURE_SATISFACTORY_OFFSET 0.2
 #define EXPOSURE_CHANGE_VALUE 130
 
 namespace libcamera {
