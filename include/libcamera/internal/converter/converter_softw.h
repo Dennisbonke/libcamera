@@ -83,6 +83,10 @@ private:
 
 		Thread thread_;
 
+		float r_avg, g_avg, b_avg;
+		float blue_change, red_change;
+		unsigned int red_count, blue_count, green_count;
+
 		unsigned int width_;
 		unsigned int height_;
 		unsigned int stride_;

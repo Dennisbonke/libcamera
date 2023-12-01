@@ -143,6 +143,13 @@ int SwConverter::Isp::configure(const StreamConfiguration &inputCfg,
 	bNumerat_ = bDenomin_ = 1;
 	gNumerat_ = gDenomin_ = 1;
 
+	/*set r/g/b change values to 1 until frame data is collected*/
+	r_avg = 1;
+	g_avg = 1;
+	b_avg = 1;
+	blue_change = 1;
+	red_change = 1;
+
 	histRed_.resize(256, 0);
 	histGreenRed_.resize(256, 0);
 	histGreenBlue_.resize(256, 0);
@@ -332,7 +339,7 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 			int x_0 = x + 1 + (x + 1) / 4;	/* offset for x */
 			int x_p1 = x + 2 + (x + 2) / 4;	/* offset for (x+1) */
 			/* the colour component value to write to the output */
-			unsigned val;
+			//unsigned val;
 			/* variables to store colors*/
 			unsigned red = 0,green = 0,blue = 0;
 			/* Y value times 256 */
@@ -365,6 +372,7 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 					/*Andrey's AWB*/
 				//val = val * rNumerat_ / rDenomin_;
 				histRed[std::min(red, 0xffU)] += 1;
+				red_count++;
 				break;
 			case 1: /* at Gr pixel */
 				/* blue: ((0,-1) + (0,1)) / 2 */
@@ -388,6 +396,7 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
 					/*Andrey's AWB*/
 				//val = val * rNumerat_ / rDenomin_;
+				green_count++;
 				break;
 			case 2: /* at Gb pixel */
 				/* blue: ((-1,0) + (1,0)) / 2 */
@@ -411,6 +420,7 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
 					/*Andrey's AWB*/
 				//val = val * rNumerat_ / rDenomin_;
+				green_count++;
 				break;
 			default: /* at B pixel */
 				/* blue: (0,0) */
@@ -438,18 +448,29 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 				if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
 					/*Andrey's AWB*/
 				//val = val * rNumerat_ / rDenomin_;
+				blue_count++;
 			}
 			// Add 1 to luminance value bin in luminance histogram
 			histLuminance[std::min(y_val/256, 0xffU)] += 1;
 
-			// Divide by 2 to get average summarization of single green pixel
-			sumG /= 2;
+			/* calculate red, blue and green avg for simple AWB*/
+			g_avg = (float)sumG / green_count;
+			r_avg = (float)sumR / red_count;
+			b_avg = (float)sumB / blue_count;
+
+			red_change = ((float)r_avg / g_avg);
+			blue_change = ((float)b_avg / g_avg);
+
+			// Divide by 2 to remove pink hue
+			green /= 2;
+			red /= 2;
+			blue /= 2;
 
 			// Gray World Theory AWB
 			//Corrected Red = Red * R-avg / G-avg
-			red = red * (sumR / sumG);
+			red = (int)(red * red_change);
 			//Corrected Blue = Blue * B-avg / G-avg
-			blue = blue * (sumB / sumG);
+			blue = (int)(blue * blue_change);
 
 			/*Set RGB values*/
 			*pout++ = (uint8_t)std::min(blue, 0xffU);
@@ -475,42 +496,8 @@ void SwConverter::Isp::debayerP(uint8_t *dst, const uint8_t *src)
 	}
 }
 
-/*------------ Andrey's Auto White balance ------------*/
-	// /* calculate red and blue gains for simple AWB */
-	// LOG(Converter, Debug) << "sumR = " << sumR
-	// 		      << ", sumB = " << sumB << ", sumG = " << sumG;
-
-	// sumG /= 2; /* the number of G pixels is twice as big vs R and B ones */
-
-	// /* normalize red, blue, and green sums to fit into 22-bit value */
-	// unsigned long fRed = sumR / 0x400000;
-	// unsigned long fBlue = sumB / 0x400000;
-	// unsigned long fGreen = sumG / 0x400000;
-	// unsigned long fNorm = std::max({ 1UL, fRed, fBlue, fGreen });
-	// sumR /= fNorm;
-	// sumB /= fNorm;
-	// sumG /= fNorm;
-
-	// LOG(Converter, Debug) << "fNorm = " << fNorm;
-	// LOG(Converter, Debug) << "Normalized: sumR = " << sumR
-	// 		      << ", sumB= " << sumB << ", sumG = " << sumG;
-
-	// /* make sure red/blue gains never exceed approximately 256 */
-	// unsigned long minDenom;
-	// rNumerat_ = (sumR + sumB + sumG) / 3;
-	// minDenom = rNumerat_ / 0x100;
-	// rDenomin_ = std::max(minDenom, sumR);
-	// bNumerat_ = rNumerat_;
-	// bDenomin_ = std::max(minDenom, sumB);
-	// gNumerat_ = rNumerat_;
-	// gDenomin_ = std::max(minDenom, sumG);
-
-	// LOG(Converter, Debug) << "rGain = [ "
-	// 		      << rNumerat_ << " / " << rDenomin_
-	// 		      << " ], bGain = [ " << bNumerat_ << " / " << bDenomin_
-	// 		      << " ], gGain = [ " << gNumerat_ << " / " << gDenomin_
-	// 		      << " (minDenom = " << minDenom << ")";
-/*------------ Andrey's Auto White balance ------------*/
+	LOG(Converter,Debug) << "(r_avg / g_avg): " << red_change;
+	LOG(Converter,Debug) << "(b_avg / g_avg): " << blue_change;
 }
 
 uint16_t* SwConverter::Isp::readByteFromCamera(const uint8_t *pin_base){
@@ -741,9 +728,9 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			// Gray World Theory AWB
 			//green = green * g_avg / g_avg; useless calculation
 			//Corrected Red = Red * R-avg / G-avg
-			red = red * (sumR / sumG);
+			red = red * red_change;
 			//Corrected Blue = Blue * B-avg / G-avg
-			blue = blue * (sumB / sumG);
+			blue = blue * blue_change;
 
 			// *pout++ = (uint8_t)std::min(blue, 0xffU);
 			// *pout++ = (uint8_t)std::min(green, 0xffU);
@@ -779,39 +766,7 @@ void SwConverter::Isp::debayerNP(uint8_t *dst, const uint8_t *src)
 			      << ", too_bright_ratio_ = " << too_bright_ratio_;
 	}
 }
-	/* calculate red and blue gains for simple AWB */
-	// LOG(Converter, Debug) << "sumR = " << sumR
-	// 		      << ", sumB = " << sumB << ", sumG = " << sumG;
 
-
-	// /* normalize red, blue, and green sums to fit into 22-bit value */
-	// unsigned long fRed = sumR / 0x400000;
-	// unsigned long fBlue = sumB / 0x400000;
-	// unsigned long fGreen = sumG / 0x400000;
-	// unsigned long fNorm = std::max({ 1UL, fRed, fBlue, fGreen });
-	// sumR /= fNorm;
-	// sumB /= fNorm;
-	// sumG /= fNorm;
-
-	// LOG(Converter, Debug) << "fNorm = " << fNorm;
-	// LOG(Converter, Debug) << "Normalized: sumR = " << sumR
-	// 		      << ", sumB= " << sumB << ", sumG = " << sumG;
-
-	// /* make sure red/blue gains never exceed approximately 256 */
-	// unsigned long minDenom;
-	// rNumerat_ = (sumR + sumB + sumG) / 3;
-	// minDenom = rNumerat_ / 0x100;
-	// rDenomin_ = std::max(minDenom, sumR);
-	// bNumerat_ = rNumerat_;
-	// bDenomin_ = std::max(minDenom, sumB);
-	// gNumerat_ = rNumerat_;
-	// gDenomin_ = std::max(minDenom, sumG);
-
-	// LOG(Converter, Debug) << "rGain = [ "
-	// 		      << rNumerat_ << " / " << rDenomin_
-	// 		      << " ], bGain = [ " << bNumerat_ << " / " << bDenomin_
-	// 		      << " ], gGain = [ " << gNumerat_ << " / " << gDenomin_
-	// 		      << " (minDenom = " << minDenom << ")";
 }
 
 
