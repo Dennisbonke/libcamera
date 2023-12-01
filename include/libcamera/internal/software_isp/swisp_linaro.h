@@ -130,6 +130,10 @@ private:
 		unsigned long sumB_;
 		unsigned long sumG_;
 
+		unsigned int red_count;
+		unsigned int blue_count;
+		unsigned int green_count;
+
 		unsigned long bright_sum_;
 		unsigned long too_bright_sum_;
 

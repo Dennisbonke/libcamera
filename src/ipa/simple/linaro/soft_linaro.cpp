@@ -47,12 +47,15 @@ public:
 
 private:
 	void update_exposure(double ev_adjustment);
+	void apply_auto_whitebalance();
 
 	SwIspStats *stats_;
 	int exposure_min_, exposure_max_;
 	int again_min_, again_max_;
 	int again_, exposure_;
 	int ignore_updates_;
+	int red_awb_correction;
+	int blue_awb_correction;
 };
 
 int IPASoftLinaro::platformInit(const ControlInfoMap &sensorInfoMap)
@@ -142,6 +145,7 @@ void IPASoftLinaro::platformProcessStats(const ControlList &sensorControls)
 		again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
 
 		update_exposure(ev_adjustment);
+		apply_auto_whitebalance();
 
 		ctrls.set(V4L2_CID_EXPOSURE, exposure_);
 		ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
@@ -176,6 +180,15 @@ void IPASoftLinaro::update_exposure(double ev_adjustment)
 
 	LOG(IPASoft, Debug) << "Desired EV = " << ev
 			    << ", real EV = " << (double)again_ * exposure_;
+}
+
+void IPASoftLinaro::apply_auto_whitebalance(){
+	int g_avg = stats_->sumG_ / stats_->green_count;
+	int r_avg = stats_->sumR_ / stats_->red_count;
+	int b_avg = stats_->sumB_ / stats_->blue_count;
+
+	stats_->red_awb_correction = r_avg / g_avg;
+	stats_->blue_awb_correction = b_avg /g_avg;
 }
 
 } /* namespace ipa::soft */

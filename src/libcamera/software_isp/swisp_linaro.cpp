@@ -74,6 +74,10 @@ static const unsigned int BLUE_Y_MUL = 29;		/* 0.11 * 256 */
 	sumR += r;					\
 	sumG += g1 + g2;				\
 	sumB += b;					\
+								\
+	red_count++;					\
+	blue_count++;					\
+	green_count += 2;				\
 							\
 	y_val = r * RED_Y_MUL;				\
 	y_val += (g1 + g2) * GREEN_Y_MUL;		\
@@ -220,9 +224,9 @@ void SwIspLinaro::IspWorker::debayerBGGR10PLine0(uint8_t *dst, const uint8_t *sr
 		 *                       RGR
 		 * Write BGR
 		 */
-		*dst++ = curr[x] * bNumerat_ / 256UL;
-		*dst++ = (prev[x] + curr[x - 2] + curr[x + 1] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = (prev[x - 2] + prev[x + 1] + next[x - 2]  + next[x + 1]) * rNumerat_ / 1024UL;
+		*dst++ = curr[x] * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 2] + curr[x + 1] + next[x]) ;
+		*dst++ = (prev[x - 2] + prev[x + 1] + next[x - 2]  + next[x + 1]) * stats_.red_awb_correction;
 		x++;
 
 		/*
@@ -231,20 +235,20 @@ void SwIspLinaro::IspWorker::debayerBGGR10PLine0(uint8_t *dst, const uint8_t *sr
 		 *                      GRG
 		 * Write BGR
 		 */
-		*dst++ = (curr[x - 1] + curr[x + 1]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (prev[x] + next[x]) * rNumerat_ / 512UL;
+		*dst++ = (curr[x - 1] + curr[x + 1]) * stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (prev[x] + next[x]) * stats_.red_awb_correction;
 		x++;
 
 		/* Same thing for next 2 pixels */
-		*dst++ = curr[x] * bNumerat_ / 256UL;
-		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1]  + next[x + 1]) * rNumerat_ / 1024UL;
+		*dst++ = curr[x] * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]);
+		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1]  + next[x + 1]) * stats_.red_awb_correction;
 		x++;
 
-		*dst++ = (curr[x - 1] + curr[x + 2]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (prev[x] + next[x]) * rNumerat_ / 512UL;
+		*dst++ = (curr[x - 1] + curr[x + 2]) * stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (prev[x] + next[x]) * stats_.red_awb_correction;
 	}
 }
 
@@ -269,9 +273,9 @@ void SwIspLinaro::IspWorker::debayerBGGR10PLine1(uint8_t *dst, const uint8_t *sr
 		 *                       GBG
 		 * Write BGR
 		 */
-		*dst++ = (prev[x] + next[x]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (curr[x - 2] + curr[x + 1]) * rNumerat_ / 512UL;
+		*dst++ = (prev[x] + next[x]) *  stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (curr[x - 2] + curr[x + 1]) * stats_.red_awb_correction;
 		x++;
 
 		/*
@@ -280,20 +284,20 @@ void SwIspLinaro::IspWorker::debayerBGGR10PLine1(uint8_t *dst, const uint8_t *sr
 		 *                      BGB
 		 * Write BGR
 		 */
-		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1] + next[x + 1]) * bNumerat_ / 1024UL;
-		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = curr[x] * rNumerat_ / 256UL;
+		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1] + next[x + 1]) *  stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]);
+		*dst++ = curr[x] * stats_.red_awb_correction;
 		x++;
 
 		/* Same thing for next 2 pixels */
-		*dst++ = (prev[x] + next[x]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (curr[x - 1] + curr[x + 1]) * rNumerat_ / 512UL;
+		*dst++ = (prev[x] + next[x]) *  stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (curr[x - 1] + curr[x + 1]) * stats_.red_awb_correction;
 		x++;
 
-		*dst++ = (prev[x - 1] + prev[x + 2] + next[x - 1] + next[x + 2]) * bNumerat_ / 1024UL;
-		*dst++ = (prev[x] + curr[x - 1] + curr[x + 2] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = curr[x] * rNumerat_ / 256UL;
+		*dst++ = (prev[x - 1] + prev[x + 2] + next[x - 1] + next[x + 2]) * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 1] + curr[x + 2] + next[x]);
+		*dst++ = curr[x] * stats_.red_awb_correction;
 	}
 }
 
@@ -312,9 +316,9 @@ void SwIspLinaro::IspWorker::debayerGBRG10PLine0(uint8_t *dst, const uint8_t *sr
 		 *                       GRG
 		 * Write BGR
 		 */
-		*dst++ = (curr[x - 2] + curr[x + 1]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (prev[x] + next[x]) * rNumerat_ / 512UL;
+		*dst++ = (curr[x - 2] + curr[x + 1]) * stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (prev[x] + next[x]) * stats_.red_awb_correction;
 		x++;
 
 		/*
@@ -323,20 +327,20 @@ void SwIspLinaro::IspWorker::debayerGBRG10PLine0(uint8_t *dst, const uint8_t *sr
 		 *                      RGR
 		 * Write BGR
 		 */
-		*dst++ = curr[x] * bNumerat_ / 256UL;
-		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1]  + next[x + 1]) * rNumerat_ / 1024UL;
+		*dst++ = curr[x] * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]);
+		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1]  + next[x + 1]) * stats_.red_awb_correction;
 		x++;
 
 		/* Same thing for next 2 pixels */
-		*dst++ = (curr[x - 1] + curr[x + 1]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (prev[x] + next[x]) * rNumerat_ / 512UL;
+		*dst++ = (curr[x - 1] + curr[x + 1]) * stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (prev[x] + next[x]) *stats_.red_awb_correction;
 		x++;
 
-		*dst++ = curr[x] * bNumerat_ / 256UL;
-		*dst++ = (prev[x] + curr[x - 1] + curr[x + 2] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = (prev[x - 1] + prev[x + 2] + next[x - 1]  + next[x + 2]) * rNumerat_ / 1024UL;
+		*dst++ = curr[x] * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 1] + curr[x + 2] + next[x]);
+		*dst++ = (prev[x - 1] + prev[x + 2] + next[x - 1]  + next[x + 2]) * stats_.red_awb_correction;
 	}
 }
 
@@ -355,9 +359,9 @@ void SwIspLinaro::IspWorker::debayerGBRG10PLine1(uint8_t *dst, const uint8_t *sr
 		 *                       BGB
 		 * Write BGR
 		 */
-		*dst++ = (prev[x - 2] + prev[x + 1] + next[x - 2] + next[x + 1]) * bNumerat_ / 1024UL;
-		*dst++ = (prev[x] + curr[x - 2] + curr[x + 1] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = curr[x] * rNumerat_ / 256UL;
+		*dst++ = (prev[x - 2] + prev[x + 1] + next[x - 2] + next[x + 1]) * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 2] + curr[x + 1] + next[x]);
+		*dst++ = curr[x] * stats_.red_awb_correction;
 		x++;
 
 		/*
@@ -366,20 +370,20 @@ void SwIspLinaro::IspWorker::debayerGBRG10PLine1(uint8_t *dst, const uint8_t *sr
 		 *                      GBG
 		 * Write BGR
 		 */
-		*dst++ = (prev[x] + next[x]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (curr[x - 1] + curr[x + 1]) * rNumerat_ / 512UL;
+		*dst++ = (prev[x] + next[x]) * stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (curr[x - 1] + curr[x + 1]) * stats_.red_awb_correction;
 		x++;
 
 		/* Same thing for next 2 pixels */
-		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1] + next[x + 1]) * bNumerat_ / 1024UL;
-		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]) * gNumerat_ / 1024UL;
-		*dst++ = curr[x] * rNumerat_ / 256UL;
+		*dst++ = (prev[x - 1] + prev[x + 1] + next[x - 1] + next[x + 1]) * stats_.blue_awb_correction;
+		*dst++ = (prev[x] + curr[x - 1] + curr[x + 1] + next[x]);
+		*dst++ = curr[x] * stats_.red_awb_correction;
 		x++;
 
-		*dst++ = (prev[x] + next[x]) * bNumerat_ / 512UL;
-		*dst++ = curr[x] * gNumerat_ / 256UL;
-		*dst++ = (curr[x - 1] + curr[x + 2]) * rNumerat_ / 512UL;
+		*dst++ = (prev[x] + next[x]) * stats_.blue_awb_correction;
+		*dst++ = curr[x] ;
+		*dst++ = (curr[x - 1] + curr[x + 2]) * stats_.red_awb_correction;
 	}
 }
 
@@ -388,6 +392,15 @@ void SwIspLinaro::IspWorker::finishRaw10PStats(void)
 	/* calculate the fractions of "bright" and "too bright" pixels */
 	stats_.bright_ratio = (float)bright_sum_ / (outHeight_ * outWidth_ / 4);
 	stats_.too_bright_ratio = (float)too_bright_sum_ / (outHeight_ * outWidth_ / 4);
+
+	/* add sum values and color count to statistics*/
+	stats_.sumG_ = sumG_;
+	stats_.sumB_ = sumB_;
+	stats_.sumR_ = sumR_;
+
+	stats_.green_count = green_count;
+	stats_.blue_count = blue_count;
+	stats_.red_count = red_count;
 
 	/* calculate red and blue gains for simple AWB */
 	sumG_ /= 2; /* the number of G pixels is twice as big vs R and B ones */
@@ -491,6 +504,9 @@ SwIspLinaro::IspWorker::IspWorker(SwIspLinaro *swIsp)
 		&SwIspLinaro::IspWorker::finishRaw10PStats,
 		&SwIspLinaro::IspWorker::outSizesRaw10P,
 		&SwIspLinaro::IspWorker::outStrideRaw10P };
+
+		LOG(SoftwareIsp, Debug) << "red correction value: " << stats_.red_awb_correction;
+		LOG(SoftwareIsp, Debug) << "blue correction value: " << stats_.red_awb_correction;
 }
 
 int SwIspLinaro::IspWorker::setDebayerInfo(PixelFormat format)
@@ -607,6 +623,10 @@ int SwIspLinaro::IspWorker::configure(const StreamConfiguration &inputCfg,
 	rNumerat_ = 256;
 	bNumerat_ = 256;
 	gNumerat_ = 256;
+
+	/* set awb correction values to 1 until frame data collected */
+	stats_.blue_awb_correction = 1;
+	stats_.red_awb_correction = 1;
 
 	return 0;
 }
