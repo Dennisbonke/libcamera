@@ -183,9 +183,9 @@ void IPASoftLinaro::update_exposure(double ev_adjustment)
 }
 
 void IPASoftLinaro::apply_auto_whitebalance(){
-	int g_avg = stats_->sumG_ / stats_->green_count;
-	int r_avg = stats_->sumR_ / stats_->red_count;
-	int b_avg = stats_->sumB_ / stats_->blue_count;
+	float g_avg = stats_->sumG_ / stats_->green_count;
+	float r_avg = stats_->sumR_ / stats_->red_count;
+	float b_avg = stats_->sumB_ / stats_->blue_count;
 
 	stats_->red_awb_correction = r_avg / g_avg;
 	stats_->blue_awb_correction = b_avg /g_avg;

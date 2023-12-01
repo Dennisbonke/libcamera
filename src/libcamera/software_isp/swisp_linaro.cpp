@@ -53,6 +53,8 @@ static const unsigned int TOO_BRIGHT_LVL = 240U << 8;
 
 static const unsigned int RED_Y_MUL = 77;		/* 0.30 * 256 */
 static const unsigned int GREEN_Y_MUL = 150 / 2;	/* 0.59 * 256 */
+static const unsigned int GREEN_Y_MUL_IR = 150 / 4;	/* 0.59 * 256 */
+
 static const unsigned int BLUE_Y_MUL = 29;		/* 0.11 * 256 */
 
 /*
@@ -61,6 +63,17 @@ static const unsigned int BLUE_Y_MUL = 29;		/* 0.11 * 256 */
  */
 #define SWISP_LINARO_START_LINE_STATS()			\
 	uint8_t r, g1, g2, b;				\
+	unsigned int y_val;				\
+							\
+	unsigned long sumR = 0;				\
+	unsigned long sumG = 0;				\
+	unsigned long sumB = 0;				\
+							\
+	unsigned long bright_sum = 0;			\
+	unsigned long too_bright_sum = 0;
+
+#define SWISP_LINARO_START_LINE_STATS_IR()			\
+	uint8_t r, g1, g2, g3, g4, b;				\
 	unsigned int y_val;				\
 							\
 	unsigned long sumR = 0;				\
@@ -84,6 +97,22 @@ static const unsigned int BLUE_Y_MUL = 29;		/* 0.11 * 256 */
 	y_val += b * BLUE_Y_MUL;			\
 	if (y_val > BRIGHT_LVL) ++bright_sum;		\
 	if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+
+#define SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()		\
+	sumR += r;					\
+	sumG += g1 + g2 + g3 + g4;				\
+	sumB += b;					\
+								\
+	red_count++;					\
+	blue_count++;					\
+	green_count += 4;				\
+							\
+	y_val = r * RED_Y_MUL;				\
+	y_val += (g1 + g2 + g3 + g4) * GREEN_Y_MUL_IR;		\
+	y_val += b * BLUE_Y_MUL;			\
+	if (y_val > BRIGHT_LVL) ++bright_sum;		\
+	if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+
 
 #define SWISP_LINARO_FINISH_LINE_STATS()		\
 	sumR_ += sumR;					\
@@ -459,9 +488,403 @@ unsigned int SwIspLinaro::IspWorker::outStrideRaw10P(const Size &outSize)
 	return outSize.width * 3;
 }
 
+// Unpacked RGB-IR Debayering part etc.
+
+void SwIspLinaro::IspWorker::statsRGBIR10Line0(const uint8_t *src0)
+{
+	const int width_in_bytes = width_ * 2;
+	const uint8_t *src1 = src0 + stride_;
+
+	SWISP_LINARO_START_LINE_STATS_IR()
+
+	for (int x = 0; x < width_in_bytes; x += 3) {
+		/* GRGB */
+		g1  = src0[x];
+		r = src0[x + 1];
+		g3  = src0[x + 2];
+		b = src0[x + 3];
+
+		/* IGIG*/
+		//i = src1[x];
+		g2  = src1[x + 1];
+		//i = src1[x];
+		g4  = src1[x + 3];
+		
+		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
+	}
+	SWISP_LINARO_FINISH_LINE_STATS()
+}
+
+void SwIspLinaro::IspWorker::statsRGBIR10Line2(const uint8_t *src0)
+{
+	const int width_in_bytes = width_ * 2;
+	const uint8_t *src1 = src0 + stride_;
+
+	SWISP_LINARO_START_LINE_STATS_IR()
+
+	for (int x = 0; x < width_in_bytes; x += 3) {
+		/* GBGR */
+		g1  = src0[x];
+		b = src0[x + 1];
+		g3  = src0[x + 2];
+		r = src0[x + 3];
+
+		/* IGIG*/
+		//i = src1[x];
+		g2  = src1[x + 1];
+		//i = src1[x];
+		g4  = src1[x + 3];
+		
+		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
+	}
+	SWISP_LINARO_FINISH_LINE_STATS()
+}
+
+
+void SwIspLinaro::IspWorker::debayerGRGB10Line0(uint8_t *dst, const uint8_t *src)
+{
+	const int width_in_bytes = 5 + width_ * 2;
+	/* Pointers to previous, current and next lines */
+	const uint8_t *prev2 = src - stride_ * 2;
+	const uint8_t *prev = src - stride_;
+	const uint8_t *curr = src;
+	const uint8_t *next = src + stride_;
+	const uint8_t *next2 = src + stride_ * 2;
+
+	for (int x = 5; x < width_in_bytes; x += 2) {
+		/*
+		 * BGBG line even pixel: GRGBG
+		 * 						 IGIGI
+		 *                       GBGRG
+		 *                       IGIGI
+		 * 						 GRGBG
+		 * Write BGR
+		 */
+		*dst++ = curr[x - 1] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = curr[x + 1] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * BGBG line even pixel: RGBGR
+		 * 						 GIGIG
+		 *                       BGRGB
+		 *                       GIGIG
+		 * 						 RGBGR
+		 * Write BGR
+		 */
+		*dst++ = ((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x]) >> 2) * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;
+		*dst++ = curr[x] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * BGBG line even pixel: GBGRG
+		 * 						 IGIGI
+		 *                       GRGBG
+		 *                       IGIGI
+		 * 						 GBGRG
+		 * Write BGR
+		 */
+		*dst++ = curr[x + 1] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = curr[x - 1] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * BGBG line even pixel: BGRGB
+		 * 						 GIGIG
+		 *                       RGBGR
+		 *                       GIGIG
+		 * 						 BGRGB
+		 * Write BGR
+		 */
+		*dst++ = curr[x] * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;
+		*dst++ = ((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x]) >> 2) * stats_.red_awb_correction;
+		x++;
+	}
+}
+
+void SwIspLinaro::IspWorker::debayerIGIG10Line1(uint8_t *dst, const uint8_t *src)
+{
+	const int width_in_bytes = 5 + width_ * 2;
+	/* Pointers to previous, current and next lines */
+	const uint8_t *prev = src - stride_;
+	const uint8_t *curr = src;
+	const uint8_t *next = src + stride_;
+
+	for (int x = 5; x < width_in_bytes; x += 2) {
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GBGRG
+		 *                       IGIGI
+		 *                       GRGBG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = ((prev[x - 1] + next[x + 1]) >> 1) * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;;
+		*dst++ = ((prev[x + 1] + next[x - 1]) >> 1) * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 BGRGB
+		 *                       GIGIG
+		 *                       RGBGR
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = next[x] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = prev[x] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GRGBG
+		 *                       IGIGI
+		 *                       GBGRG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = ((prev[x + 1] + next[x - 1]) >> 1) * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;;
+		*dst++ = ((prev[x - 1] + next[x + 1]) >> 1) * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 BGRGB
+		 *                       GIGIG
+		 *                       RGBGR
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = prev[x] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = next[x] * stats_.red_awb_correction;
+		x++;
+	}
+}
+
+void SwIspLinaro::IspWorker::debayerGBGR10Line2(uint8_t *dst, const uint8_t *src)
+{
+	const int width_in_bytes = 5 + width_ * 2;
+	/* Pointers to previous, current and next lines */
+	const uint8_t *prev2 = src - stride_ * 2;
+	const uint8_t *prev = src - stride_;
+	const uint8_t *curr = src;
+	const uint8_t *next = src + stride_;
+	const uint8_t *next2 = src + stride_ * 2;
+
+	for (int x = 5; x < width_in_bytes; x += 2) {
+		/*
+		 * BGBG line even pixel: GBGRG
+		 * 						 IGIGI
+		 *                       GRGBG
+		 *                       IGIGI
+		 * 						 GBGRG
+		 * Write BGR
+		 */
+		*dst++ = curr[x + 1] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = curr[x - 1] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * BGBG line even pixel: BGRGB
+		 * 						 GIGIG
+		 *                       RGBGR
+		 *                       GIGIG
+		 * 						 BGRGB
+		 * Write BGR
+		 */
+		*dst++ = curr[x] * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;
+		*dst++ = ((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x]) >> 2) * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * BGBG line even pixel: GRGBG
+		 * 						 IGIGI
+		 *                       GBGRG
+		 *                       IGIGI
+		 * 						 GRGBG
+		 * Write BGR
+		 */
+		*dst++ = curr[x - 1] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = curr[x + 1] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * BGBG line even pixel: RGBGR
+		 * 						 GIGIG
+		 *                       BGRGB
+		 *                       GIGIG
+		 * 						 RGBGR
+		 * Write BGR
+		 */
+		*dst++ = ((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x]) >> 2) * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;
+		*dst++ = curr[x] * stats_.red_awb_correction;
+		x++;		
+	}
+}
+
+void SwIspLinaro::IspWorker::debayerIGIG10Line3(uint8_t *dst, const uint8_t *src)
+{
+	const int width_in_bytes = 5 + width_ * 2;
+	/* Pointers to previous, current and next lines */
+	const uint8_t *prev = src - stride_;
+	const uint8_t *curr = src;
+	const uint8_t *next = src + stride_;
+
+	for (int x = 5; x < width_in_bytes; x += 2) {
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GRGBG
+		 *                       IGIGI
+		 *                       GBGRG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = ((prev[x + 1] + next[x - 1]) >> 1) * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;;
+		*dst++ = ((prev[x - 1] + next[x + 1]) >> 1) * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 RGBGR
+		 *                       GIGIG
+		 *                       BGRGB
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = prev[x] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = next[x] * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GBGRG
+		 *                       IGIGI
+		 *                       GRGBG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = ((prev[x - 1] + next[x + 1]) >> 1) * stats_.blue_awb_correction;
+		*dst++ = ((curr[x - 1] + curr[x + 1] + prev[x] + next[x]) >> 2) ;;
+		*dst++ = ((prev[x + 1] + next[x - 1]) >> 1) * stats_.red_awb_correction;
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 RGBGR
+		 *                       GIGIG
+		 *                       BGRGB
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = next[x] * stats_.blue_awb_correction;
+		*dst++ = curr[x];
+		*dst++ = prev[x] * stats_.red_awb_correction;
+		x++;
+	}
+}
+
+void SwIspLinaro::IspWorker::finishRaw10Stats(void)
+{
+	/* calculate the fractions of "bright" and "too bright" pixels */
+	stats_.bright_ratio = (float)bright_sum_ / (outHeight_ * outWidth_ / 4);
+	stats_.too_bright_ratio = (float)too_bright_sum_ / (outHeight_ * outWidth_ / 4);
+
+	/* add sum values and color count to statistics*/
+	stats_.sumG_ = sumG_;
+	stats_.sumB_ = sumB_;
+	stats_.sumR_ = sumR_;
+
+	stats_.green_count = green_count;
+	stats_.blue_count = blue_count;
+	stats_.red_count = red_count;
+
+	/* calculate red and blue gains for simple AWB */
+	sumG_ /= 4; /* the number of G pixels is four times as big vs R and B ones */
+
+	unsigned long sumMin = std::min({ sumR_, sumG_, sumB_ });
+
+	rNumerat_ = 256UL * sumMin / sumR_;
+	gNumerat_ = 256UL * sumMin / sumG_;
+	bNumerat_ = 256UL * sumMin / sumB_;
+
+{
+	static int xxx = 75;
+	if (--xxx == 0) {
+	xxx = 75;
+	LOG(SoftwareIsp, Info)
+		<< "bright_ratio_ = " << stats_.bright_ratio
+		<< ", too_bright_ratio_ = " << stats_.too_bright_ratio;
+	LOG(SoftwareIsp, Info)
+		<< "sumR = " << sumR_ << ", sumB = " << sumB_ << ", sumG = " << sumG_;
+	LOG(SoftwareIsp, Info)
+		<< "rGain = [ " << rNumerat_ << " / 256 ], "
+		<< "bGain = [ " << bNumerat_ << " / 256 ], "
+		<< "gGain = [ " << gNumerat_ << " / 256 ], ";
+	}
+}
+}
+
+SizeRange SwIspLinaro::IspWorker::outSizesRaw10(const Size &inSize)
+{
+	if (inSize.width < 2 || inSize.height < 2) {
+		LOG(SoftwareIsp, Error)
+			<< "Input format size too small: " << inSize.toString();
+		return {};
+	}
+
+	/*
+	 * Debayering is done on 4x4 blocks because:
+	 * 1. Some RGBI patterns repeat on a 4x4 basis
+	 * 2. 10 bit packed bayer data packs 4 pixels in every 5 bytes
+	 *
+	 * For the width 1 extra column is needed for interpolation on each side
+	 * and to keep the debayer code simple on the left side an entire block
+	 * is skipped reducing the available width by 5 pixels.
+	 *
+	 * For the height 2 extra rows are needed for RGBI interpolation
+	 * and to keep the debayer code simple on the top an entire block is
+         * skipped reducing the available height by 6 pixels.
+         *
+         * As debayering is done in 4x4 blocks both must be a multiple of 4.
+         */
+	return SizeRange(Size((inSize.width - 5) & ~3, (inSize.height - 6) & ~3));
+}
+
+unsigned int SwIspLinaro::IspWorker::outStrideRaw10(const Size &outSize)
+{
+	return outSize.width * 3;
+}
+
+
 SwIspLinaro::IspWorker::IspWorker(SwIspLinaro *swIsp)
 	: swIsp_(swIsp)
 {
+	// Martti Laptop DELL
+	debayerInfos_[formats::SGRBG10] = { formats::RGB888,
+		&SwIspLinaro::IspWorker::debayerGRGB10Line0,
+		&SwIspLinaro::IspWorker::debayerIGIG10Line1,
+		&SwIspLinaro::IspWorker::debayerGBGR10Line2,
+		&SwIspLinaro::IspWorker::debayerIGIG10Line3,
+		&SwIspLinaro::IspWorker::statsRGBIR10Line0,
+		&SwIspLinaro::IspWorker::statsRGBIR10Line2,
+		&SwIspLinaro::IspWorker::finishRaw10Stats,
+		&SwIspLinaro::IspWorker::outSizesRaw10,
+		&SwIspLinaro::IspWorker::outStrideRaw10 };
+
 	debayerInfos_[formats::SBGGR10_CSI2P] = { formats::RGB888,
 		&SwIspLinaro::IspWorker::debayerBGGR10PLine0,
 		&SwIspLinaro::IspWorker::debayerBGGR10PLine1,

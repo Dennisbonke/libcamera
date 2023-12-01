@@ -108,6 +108,18 @@ private:
 		static SizeRange outSizesRaw10P(const Size &inSize);
 		static unsigned int outStrideRaw10P(const Size &outSize);
 
+		/* RGB-IR unpacked 10-bit raw bayer format (all the 4 orders)*/
+
+		void debayerGRGB10Line0(uint8_t *dst, const uint8_t *src);
+		void debayerIGIG10Line1(uint8_t *dst, const uint8_t *src);
+		void debayerGBGR10Line2(uint8_t *dst, const uint8_t *src);
+		void debayerIGIG10Line3(uint8_t *dst, const uint8_t *src);
+		void statsRGBIR10Line0(const uint8_t *src);
+		void statsRGBIR10Line2(const uint8_t *src);
+		void finishRaw10Stats(void);
+		static SizeRange outSizesRaw10(const Size &inSize);
+		static unsigned int outStrideRaw10(const Size &outSize);
+
 #if 0
 		libcamera::Mutex idleMutex_;
 		libcamera::ConditionVariable idleCV_;
