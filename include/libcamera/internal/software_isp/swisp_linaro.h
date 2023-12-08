@@ -109,11 +109,11 @@ private:
 		static unsigned int outStrideRaw10P(const Size &outSize);
 
 		/* RGB-IR unpacked 10-bit raw bayer format (all the 4 orders)*/
-
-		void debayerGRGB10Line0(uint8_t *dst, const uint8_t *src);
-		void debayerIGIG10Line1(uint8_t *dst, const uint8_t *src);
-		void debayerGBGR10Line2(uint8_t *dst, const uint8_t *src);
-		void debayerIGIG10Line3(uint8_t *dst, const uint8_t *src);
+		
+		void debayerIGIG10Line0(uint8_t *dst, const uint8_t *src);
+		void debayerGRGB10Line1(uint8_t *dst, const uint8_t *src);
+		void debayerIGIG10Line2(uint8_t *dst, const uint8_t *src);
+		void debayerGBGR10Line3(uint8_t *dst, const uint8_t *src);
 		void statsRGBIR10Line0(const uint8_t *src);
 		void statsRGBIR10Line2(const uint8_t *src);
 		void finishRaw10Stats(void);
@@ -146,8 +146,7 @@ private:
 		unsigned int blue_count;
 		unsigned int green_count;
 
-		unsigned long bright_sum_;
-		unsigned long too_bright_sum_;
+		unsigned int exposurebins[5];
 
 		SwIspStats stats_;
 	};

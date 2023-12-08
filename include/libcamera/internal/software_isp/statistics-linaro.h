@@ -10,8 +10,8 @@
 namespace libcamera {
 
 struct SwIspStats {
-	float bright_ratio;
-	float too_bright_ratio;
+	unsigned int exposurebins[5];
+
 	unsigned long sumR_;
 	unsigned long sumB_;
 	unsigned long sumG_;

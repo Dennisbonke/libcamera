@@ -19,6 +19,10 @@
 #include "libcamera/internal/camera_sensor.h"
 #include "libcamera/internal/software_isp/statistics-linaro.h"
 
+#define EXPOSURE_SATISFACTORY_OFFSET 0.2
+
+#define EXPOSURE_CHANGE_VALUE 130
+
 namespace libcamera {
 
 LOG_DECLARE_CATEGORY(IPASoft)
@@ -47,6 +51,7 @@ public:
 
 private:
 	void update_exposure(double ev_adjustment);
+	void update_exposure2(double exposuremsv);
 	void apply_auto_whitebalance();
 
 	SwIspStats *stats_;
@@ -116,7 +121,7 @@ void IPASoftLinaro::platformStop()
 
 void IPASoftLinaro::platformProcessStats(const ControlList &sensorControls)
 {
-	double ev_adjustment = 0.0;
+	//double ev_adjustment = 0.0;
 	ControlList ctrls(sensorControls);
 
 	/*
@@ -130,30 +135,80 @@ void IPASoftLinaro::platformProcessStats(const ControlList &sensorControls)
 		return;
 	}
 
-	if (stats_->bright_ratio < 0.01) ev_adjustment = 1.1;
-	if (stats_->too_bright_ratio > 0.04) ev_adjustment = 0.9;
+	unsigned int denom = stats_->exposurebins[0] + stats_->exposurebins[1] + stats_->exposurebins[2] + stats_->exposurebins[3] + stats_->exposurebins[4];
 
-	if (ev_adjustment != 0.0) {
-		/* sanity check */
-		if (!sensorControls.contains(V4L2_CID_EXPOSURE) ||
-		    !sensorControls.contains(V4L2_CID_ANALOGUE_GAIN)) {
-			LOG(IPASoft, Error) << "Control(s) missing";
-			return;
-		}
+	unsigned int num = 0;
 
-		exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
-		again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
-
-		update_exposure(ev_adjustment);
-		apply_auto_whitebalance();
-
-		ctrls.set(V4L2_CID_EXPOSURE, exposure_);
-		ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
-
-		ignore_updates_ = 2;
-
-		setSensorControls.emit(ctrls);
+	
+	for(int i = 0; i <= 4; i++){
+		num += stats_->exposurebins[i] * (i + 1);
 	}
+
+	float exposuremsv = (float)num/denom;
+
+	LOG(IPASoft, Info)
+		<< " exposure[0] = " << stats_->exposurebins[0]
+		<< " exposure[1] = " << stats_->exposurebins[1]
+		<< " exposure[2] = " << stats_->exposurebins[2]
+		<< " exposure[3] = " << stats_->exposurebins[3]
+		<< " exposure[4] = " << stats_->exposurebins[4];
+
+	LOG(IPASoft, Info) << exposuremsv;
+
+	exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
+	again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
+
+	update_exposure2(exposuremsv);
+	ctrls.set(V4L2_CID_EXPOSURE, exposure_);
+	ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
+
+	ignore_updates_ = 2;
+
+	setSensorControls.emit(ctrls);
+}
+
+void IPASoftLinaro::update_exposure2(double ev_adjustment)
+{
+if (ev_adjustment < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
+		
+		
+		// Exposure needs to be higher.
+		exposure_ += EXPOSURE_CHANGE_VALUE;
+
+		if (exposure_ >= exposure_max_){
+			// Increase gain.
+			again_ += EXPOSURE_CHANGE_VALUE;
+		}
+	}
+	
+	if (ev_adjustment > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
+
+		LOG(IPASoft, Debug) << "OVEREXPOSED";
+		// If exposure is maximum, and gain is not minimum, decrease gain.
+		if (exposure_ == exposure_max_ && again_ != again_min_){
+			again_ -= EXPOSURE_CHANGE_VALUE;
+		}else {
+			exposure_ -= EXPOSURE_CHANGE_VALUE;
+		}
+		// Exposure needs to be lower.
+		
+	}
+	// Clamp exposure value between max and min value it's allowed to be.
+	if (exposure_ > exposure_max_) exposure_ = exposure_max_;
+	else if (exposure_ < exposure_min_) exposure_ = exposure_min_;
+	
+	// Clamp gain value between max and min value it's allowed to be.
+	if (again_ > again_max_) again_ = again_max_;
+	else if (again_ < again_min_) again_ = again_min_;
+
+	LOG(IPASoft,Debug) << "again_ = " << again_ << " again_min_ = " << again_min_ << " again_max_ = " << again_max_;
+	LOG(IPASoft,Debug) << "exposure_ = " << exposure_ << " exposure_min_ = " << exposure_min_ << " exposure_max_ = " << exposure_max_;
+
+	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
+	//again_ = 1.0;
+
+	LOG(IPASoft, Info) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << again_;
+
 }
 
 void IPASoftLinaro::update_exposure(double ev_adjustment)
