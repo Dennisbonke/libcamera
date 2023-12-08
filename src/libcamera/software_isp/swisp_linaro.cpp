@@ -10,8 +10,8 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <algorithm> 
+ 
+#include <bitset>
 
 #include <libcamera/formats.h>
 #include <libcamera/stream.h>
@@ -485,7 +485,7 @@ unsigned int SwIspLinaro::IspWorker::outStrideRaw10P(const Size &outSize)
 void SwIspLinaro::IspWorker::statsRGBIR10Line0(const uint8_t *src0)
 {	
 
-	const int width_in_bytes = width_ * 2;
+	const int width_in_bytes = width_;
 	const uint16_t *src0_16 = (uint16_t *)src0 + (stride_/2);
 	const uint16_t *src1_16 = src0_16 + (stride_/2);
 
@@ -514,7 +514,7 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line0(const uint8_t *src0)
 
 void SwIspLinaro::IspWorker::statsRGBIR10Line2(const uint8_t *src0)
 {
-	const int width_in_bytes = width_ * 2;
+	const int width_in_bytes = width_;
 	const uint16_t *src0_16 = (uint16_t *)src0 + (stride_/2);
 	const uint16_t *src1_16 = src0_16 + (stride_/2);
 
@@ -542,145 +542,13 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line2(const uint8_t *src0)
 
 void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
 {
-	const int width_in_bytes = width_ - 4;
 	/* Pointers to previous, current and next lines */
-	const uint16_t *prev = (uint16_t *)src - stride_ / 2;
-	const uint16_t *curr = (uint16_t *)src;
-	const uint16_t *next = (uint16_t *)src + stride_ / 2;
-	(void) prev; (void) curr; (void) next;
-	
-	for (int x = 2; x < width_in_bytes; x += 0) {
-		/*
-		 * IGIG line even pixel: IGIGI
-		 * 						 GRGBG
-		 *                       IGIGI
-		 *                       GBGRG
-		 * 						 IGIGI
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
-		x++;
-
-		/*
-		 * IGIG line even pixel: GIGIG
-		 * 						 RGBGR
-		 *                       GIGIG
-		 *                       BGRGB
-		 * 						 GIGIG
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)prev[x],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)next[x],0xff);
-		x++;
-
-		/*
-		 * IGIG line even pixel: IGIGI
-		 * 						 GBGRG
-		 *                       IGIGI
-		 *                       GRGBG
-		 * 						 IGIGI
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
-		x++;
-
-		/*
-		 * IGIG line even pixel: GIGIG
-		 * 						 RGBGR
-		 *                       GIGIG
-		 *                       BGRGB
-		 * 						 GIGIG
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)next[x],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)prev[x],0xff);
-		x++;
-	}
-}
-
-void SwIspLinaro::IspWorker::debayerGRGB10Line1(uint8_t *dst, const uint8_t *src)
-{
-	const int width_in_bytes = width_ - 4;
-	/* Pointers to previous, current and next lines */
-	const uint16_t *prev2 = (uint16_t *) src - stride_;
-	const uint16_t *prev = (uint16_t *) src - (stride_ / 2);
-	const uint16_t *curr = (uint16_t *) src;
-	const uint16_t *next = (uint16_t *) src + (stride_ / 2);
-	const uint16_t *next2 = (uint16_t *) src + stride_;
-	
-	(void) prev2;(void) prev;(void) curr;(void) next;(void) next2;
-
-	for (int x = 2; x < width_in_bytes; x += 0) {
-		/*
-		 * BGBG line even pixel: GRGBG
-		 * 						 IGIGI
-		 *                       GBGRG
-		 *                       IGIGI
-		 * 						 GRGBG
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)curr[x - 1],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)curr[x + 1],0xff);
-		x++;
-
-		/*
-		 * BGBG line even pixel: RGBGR
-		 * 						 GIGIG
-		 *                       BGRGB
-		 *                       GIGIG
-		 * 						 RGBGR
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		x++;
-
-		/*
-		 * BGBG line even pixel: GBGRG
-		 * 						 IGIGI
-		 *                       GRGBG
-		 *                       IGIGI
-		 * 						 GBGRG
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)curr[x + 1],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)curr[x - 1],0xff);
-		x++;
-
-		/*
-		 * BGBG line even pixel: BGRGB
-		 * 						 GIGIG
-		 *                       RGBGR
-		 *                       GIGIG
-		 * 						 BGRGB
-		 * Write BGR
-		 */
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
-		x++;
-	}
-}
-
-void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
-{
-	const int width_in_bytes = width_ - 4;
-	/* Pointers to previous, current and next lines */
-	const uint16_t *prev = (uint16_t *) src - stride_ / 2;
-	const uint16_t *curr = (uint16_t *) src;
-	const uint16_t *next = (uint16_t *) src + stride_ / 2;
+	const uint16_t *prev = (uint16_t *) (src - stride_);
+	const uint16_t *curr = (uint16_t *) (src);
+	const uint16_t *next = (uint16_t *) (src + stride_);
 	(void) prev; (void) curr; (void) next;
 
-	for (int x = 2; x < width_in_bytes; x += 0) {
+	for (int x = 4; x < (int)width_;) {
 		/*
 		 * IGIG line even pixel: IGIGI
 		 * 						 GBGRG
@@ -735,18 +603,17 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src
 	}
 }
 
-void SwIspLinaro::IspWorker::debayerGBGR10Line3(uint8_t *dst, const uint8_t *src)
+void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
 {
-	const int width_in_bytes = width_ - 4;
 	/* Pointers to previous, current and next lines */
-	const uint16_t *prev2 = (uint16_t *) src - stride_;
-	const uint16_t *prev = (uint16_t *)src - (stride_ / 2);
-	const uint16_t *curr = (uint16_t *)src;
-	const uint16_t *next = (uint16_t *)src + (stride_ / 2);
-	const uint16_t *next2 = (uint16_t *) src + stride_;
+	const uint16_t *prev2 = (uint16_t *)(src - stride_ * 2);
+	const uint16_t *prev = (uint16_t *) (src - stride_);
+	const uint16_t *curr = (uint16_t *) (src);
+	const uint16_t *next = (uint16_t *) (src + stride_);
+	const uint16_t *next2 = (uint16_t *)(src + stride_ * 2);
 	(void) prev2;(void) prev; (void) curr; (void) next; (void) next2;
 
-	for (int x = 2; x < width_in_bytes; x += 0) {
+	for (int x = 4; x < (int)width_;) {
 		/*
 		 * BGBG line even pixel: GBGRG
 		 * 						 IGIGI
@@ -798,6 +665,134 @@ void SwIspLinaro::IspWorker::debayerGBGR10Line3(uint8_t *dst, const uint8_t *src
 		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
 		*dst++ = std::min((int)curr[x],0xff);
 		x++;	
+	}
+}
+
+void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
+{
+	/* Pointers to previous, current and next lines */
+	const uint16_t *prev = (uint16_t *)(src - stride_);
+	const uint16_t *curr = (uint16_t *)src;
+	const uint16_t *next = (uint16_t *)(src + stride_);
+	(void) prev; (void) curr; (void) next;
+	
+	for (int x = 4; x < (int)width_;) {
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GRGBG
+		 *                       IGIGI
+		 *                       GBGRG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 RGBGR
+		 *                       GIGIG
+		 *                       BGRGB
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)prev[x],0xff);
+		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)next[x],0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GBGRG
+		 *                       IGIGI
+		 *                       GRGBG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
+		x++;
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 RGBGR
+		 *                       GIGIG
+		 *                       BGRGB
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)next[x],0xff);
+		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)prev[x],0xff);
+		x++;
+	}
+}
+
+void SwIspLinaro::IspWorker::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
+{
+	/* Pointers to previous, current and next lines */
+	const uint16_t *prev2 = (uint16_t *)(src - stride_ * 2);
+	const uint16_t *prev = (uint16_t *) (src - stride_);
+	const uint16_t *curr = (uint16_t *) (src);
+	const uint16_t *next = (uint16_t *) (src + stride_);
+	const uint16_t *next2 = (uint16_t *)(src + stride_ * 2);
+	
+	(void) prev2;(void) prev;(void) curr;(void) next;(void) next2;
+
+	for (int x = 4; x < (int)width_;) {
+		/*
+		 * BGBG line even pixel: GRGBG
+		 * 						 IGIGI
+		 *                       GBGRG
+		 *                       IGIGI
+		 * 						 GRGBG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x - 1],0xff);
+		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)curr[x + 1],0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: RGBGR
+		 * 						 GIGIG
+		 *                       BGRGB
+		 *                       GIGIG
+		 * 						 RGBGR
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
+		*dst++ = std::min((int)curr[x],0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: GBGRG
+		 * 						 IGIGI
+		 *                       GRGBG
+		 *                       IGIGI
+		 * 						 GBGRG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x + 1],0xff);
+		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)curr[x - 1],0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: BGRGB
+		 * 						 GIGIG
+		 *                       RGBGR
+		 *                       GIGIG
+		 * 						 BGRGB
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
+		x++;
 	}
 }
 
@@ -887,9 +882,9 @@ SwIspLinaro::IspWorker::IspWorker(SwIspLinaro *swIsp)
 	// Martti Laptop DELL
 	debayerInfos_[formats::SGRBG10] = { formats::RGB888,
 		&SwIspLinaro::IspWorker::debayerIGIG10Line0,
-		&SwIspLinaro::IspWorker::debayerGRGB10Line1,
+		&SwIspLinaro::IspWorker::debayerGBGR10Line1,
 		&SwIspLinaro::IspWorker::debayerIGIG10Line2,
-		&SwIspLinaro::IspWorker::debayerGBGR10Line3,
+		&SwIspLinaro::IspWorker::debayerGRGB10Line3,
 		&SwIspLinaro::IspWorker::statsRGBIR10Line0,
 		&SwIspLinaro::IspWorker::statsRGBIR10Line2,
 		&SwIspLinaro::IspWorker::finishRaw10Stats,
@@ -1188,7 +1183,7 @@ void SwIspLinaro::stop()
 }
 
 void SwIspLinaro::IspWorker::process(FrameBuffer *input, FrameBuffer *output)
-{
+{	
 	/* Copy metadata from the input buffer */
 	FrameMetadata &metadata = output->_d()->metadata();
 	metadata.status = input->metadata().status;

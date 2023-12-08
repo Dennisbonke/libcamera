@@ -146,14 +146,14 @@ void IPASoftLinaro::platformProcessStats(const ControlList &sensorControls)
 
 	float exposuremsv = (float)num/denom;
 
-	LOG(IPASoft, Info)
-		<< " exposure[0] = " << stats_->exposurebins[0]
-		<< " exposure[1] = " << stats_->exposurebins[1]
-		<< " exposure[2] = " << stats_->exposurebins[2]
-		<< " exposure[3] = " << stats_->exposurebins[3]
-		<< " exposure[4] = " << stats_->exposurebins[4];
+	// LOG(IPASoft, Info)
+	// 	<< " exposure[0] = " << stats_->exposurebins[0]
+	// 	<< " exposure[1] = " << stats_->exposurebins[1]
+	// 	<< " exposure[2] = " << stats_->exposurebins[2]
+	// 	<< " exposure[3] = " << stats_->exposurebins[3]
+	// 	<< " exposure[4] = " << stats_->exposurebins[4];
 
-	LOG(IPASoft, Info) << exposuremsv;
+	// LOG(IPASoft, Info) << exposuremsv;
 
 	exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
 	again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();

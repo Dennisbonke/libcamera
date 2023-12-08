@@ -111,9 +111,9 @@ private:
 		/* RGB-IR unpacked 10-bit raw bayer format (all the 4 orders)*/
 		
 		void debayerIGIG10Line0(uint8_t *dst, const uint8_t *src);
-		void debayerGRGB10Line1(uint8_t *dst, const uint8_t *src);
+		void debayerGBGR10Line1(uint8_t *dst, const uint8_t *src);
 		void debayerIGIG10Line2(uint8_t *dst, const uint8_t *src);
-		void debayerGBGR10Line3(uint8_t *dst, const uint8_t *src);
+		void debayerGRGB10Line3(uint8_t *dst, const uint8_t *src);
 		void statsRGBIR10Line0(const uint8_t *src);
 		void statsRGBIR10Line2(const uint8_t *src);
 		void finishRaw10Stats(void);
