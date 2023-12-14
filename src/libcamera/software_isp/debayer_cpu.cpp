@@ -147,6 +147,62 @@ void DebayerCpu::debayer10P_RGRG_BGR888(uint8_t *dst, const uint8_t *src)
 	}
 }
 
+void DebayerCpu::debayer10_BGBG_BGR888(uint8_t *dst, const uint8_t *src)
+{
+	const uint16_t *prev = (const uint16_t *)(src - inputConfig_.stride);
+	const uint16_t *curr = (const uint16_t *)src;
+	const uint16_t *next = (const uint16_t *)(src + inputConfig_.stride);
+
+	for (int x = 0; x < (int)window_.width; x++) {
+		/*
+		 * BGBG line even pixel: RGR
+		 *                       GBG
+		 *                       RGR
+		 */
+		*dst++ = blue_[curr[x] / 4];
+		*dst++ = green_[(prev[x] + curr[x - 1] + curr[x + 1] + next[x]) / 16];
+		*dst++ = red_[(prev[x - 1] + prev[x + 1] + next[x - 1]  + next[x + 1]) / 16];
+		x++;
+
+		/*
+		 * BGBG line odd pixel: GRG
+		 *                      BGB
+		 *                      GRG
+		 */
+		*dst++ = blue_[(curr[x - 1] + curr[x + 1]) / 8];
+		*dst++ = green_[curr[x] / 4];
+		*dst++ = red_[(prev[x] + next[x]) / 8];
+	}
+}
+
+void DebayerCpu::debayer10_GRGR_BGR888(uint8_t *dst, const uint8_t *src)
+{
+	const uint16_t *prev = (const uint16_t *)(src - inputConfig_.stride);
+	const uint16_t *curr = (const uint16_t *)src;
+	const uint16_t *next = (const uint16_t *)(src + inputConfig_.stride);
+
+	for (int x = 0; x < (int)window_.width; x ++) {
+		/*
+		 * GRGR line even pixel: GBG
+		 *                       RGR
+		 *                       GBG
+		 */
+		*dst++ = blue_[(prev[x] + next[x]) / 8];
+		*dst++ = green_[curr[x] / 4];
+		*dst++ = red_[(curr[x - 1] + curr[x + 1]) / 8];
+		x++;
+
+		/*
+		 * GRGR line odd pixel: BGB
+		 *                      GRG
+		 *                      BGB
+		 */
+		*dst++ = blue_[(prev[x - 1] + prev[x + 1] + next[x - 1] + next[x + 1]) / 16];
+		*dst++ = green_[(prev[x] + curr[x - 1] + curr[x + 1] + next[x]) / 16];
+		*dst++ = red_[curr[x] / 4];
+	}
+}
+
 int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &config)
 {
 	BayerFormat bayerFormat =
@@ -169,7 +225,25 @@ int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &conf
 		default:
 			break;
 		}
-	/* } else if (future supported fmts) { ... */
+	} else if (bayerFormat.bitDepth == 10 &&
+		   bayerFormat.packing == BayerFormat::Packing::None) {
+		config.bpp = 16;
+		config.patternSize.height = 2;
+		config.patternSize.width = 2;
+		config.outputFormats = std::vector<PixelFormat>({ formats::RGB888 });
+
+		switch (bayerFormat.order) {
+		case BayerFormat::BGGR:
+		case BayerFormat::GRBG:
+			config.x_shift = 0;
+			return 0;
+		case BayerFormat::GBRG:
+		case BayerFormat::RGGB:
+			config.x_shift = 1; /* BGGR -> GBRG */
+			return 0;
+		default:
+			break;
+		}
 	}
 
 	LOG(Debayer, Info)
@@ -213,6 +287,22 @@ int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat, [[maybe_unused]] Pi
 		case BayerFormat::RGGB:
 			debayer0_ = &DebayerCpu::debayer10P_RGRG_BGR888;
 			debayer1_ = &DebayerCpu::debayer10P_GBGB_BGR888;
+			return 0;
+		default:
+			break;
+		}
+	} else if (bayerFormat.bitDepth == 10 &&
+		   bayerFormat.packing == BayerFormat::Packing::None) {
+		switch (bayerFormat.order) {
+		case BayerFormat::BGGR:
+		case BayerFormat::GBRG: /* x_shift=1 BGGR -> GBRG */
+			debayer0_ = &DebayerCpu::debayer10_BGBG_BGR888;
+			debayer1_ = &DebayerCpu::debayer10_GRGR_BGR888;
+			return 0;
+		case BayerFormat::GRBG:
+		case BayerFormat::RGGB: /* x_shift=1 GRBG -> RGGB */
+			debayer0_ = &DebayerCpu::debayer10_GRGR_BGR888;
+			debayer1_ = &DebayerCpu::debayer10_BGBG_BGR888;
 			return 0;
 		default:
 			break;

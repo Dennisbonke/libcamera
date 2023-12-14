@@ -66,6 +66,9 @@ private:
 	void debayer10P_GRGR_BGR888(uint8_t *dst, const uint8_t *src);
 	void debayer10P_GBGB_BGR888(uint8_t *dst, const uint8_t *src);
 	void debayer10P_RGRG_BGR888(uint8_t *dst, const uint8_t *src);
+	/* CSI-2 unpacked 10-bit raw bayer format */
+	void debayer10_BGBG_BGR888(uint8_t *dst, const uint8_t *src);
+	void debayer10_GRGR_BGR888(uint8_t *dst, const uint8_t *src);
 
 	typedef void (DebayerCpu::*debayerFn)(uint8_t *dst, const uint8_t *src);
 
