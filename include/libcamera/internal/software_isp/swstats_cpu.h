@@ -29,8 +29,11 @@ public:
 	/* FIXME this should be dropped once AWB has moved to the IPA */
 	SwIspStats getStats() { return *sharedStats_; }
 private:
+	/* Bayer 10bpp packed */
 	void statsBGGR10PLine0(const uint8_t *src, unsigned int stride);
 	void statsGBRG10PLine0(const uint8_t *src, unsigned int stride);
+	/* Bayer 10 bpp unpacked */
+	void statsBGGR10Line0(const uint8_t *src, unsigned int stride);
 	void resetStats(void);
 	void finishStats(void);
 

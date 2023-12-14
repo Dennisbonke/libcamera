@@ -106,6 +106,51 @@ void SwStatsCpu::statsGBRG10PLine0(const uint8_t *src, unsigned int stride)
 	statsBayer10P(window_.width, src0, src1, false, bright_sum_, too_bright_sum_, stats_);
 }
 
+void SwStatsCpu::statsBGGR10Line0(const uint8_t *src, unsigned int stride)
+{
+	const uint16_t *src0 = (const uint16_t *)src;
+	const uint16_t *src1 = (const uint16_t *)(src + stride);
+	uint16_t r, g, b, g2;
+	unsigned int y_val;
+	unsigned int sumR = 0;
+	unsigned int sumG = 0;
+	unsigned int sumB = 0;
+
+	unsigned int bright_sum = 0;
+	unsigned int too_bright_sum = 0;
+
+	if (swap_lines_)
+		std::swap(src0, src1);
+
+	/* x += 4 sample every other 2x2 block */
+	for (int x = 0; x < (int)window_.width; x += 4) {
+		b  = src0[x];
+		g  = src0[x + 1];
+		g2 = src1[x];
+		r  = src1[x + 1];
+
+		g = (g + g2) / 2;
+
+		sumR += r;
+		sumG += g;
+		sumB += b;
+
+		y_val = r * RED_Y_MUL;
+		y_val += g * GREEN_Y_MUL;
+		y_val += b * BLUE_Y_MUL;
+		/* Thresholds * 4 because 10 bit data */
+		if (y_val > (BRIGHT_LVL * 4)) ++bright_sum;
+		if (y_val > (TOO_BRIGHT_LVL * 4)) ++too_bright_sum;
+	}
+
+	stats_.sumR_ += sumR;
+	stats_.sumG_ += sumG;
+	stats_.sumB_ += sumB;
+
+	bright_sum_ += bright_sum;
+	too_bright_sum_ += too_bright_sum;
+}
+
 void SwStatsCpu::resetStats(void)
 {
 	stats_.sumR_ = 0;
@@ -156,7 +201,34 @@ int SwStatsCpu::configure(const StreamConfiguration &inputCfg)
 		default:
 			break;
 		}
-	/* } else if (future supported fmts) { ... */
+	} else if (bayerFormat.bitDepth == 10 &&
+		   bayerFormat.packing == BayerFormat::Packing::None) {
+		bpp_ = 16;
+		patternSize_.height = 2;
+		patternSize_.width = 2;
+		y_skip_mask_ = 0x02; /* Skip every 3th and 4th line */
+		stats0_ = (SwStats::statsProcessFn)&SwStatsCpu::statsBGGR10Line0;
+
+		switch (bayerFormat.order) {
+		case BayerFormat::BGGR:
+			x_shift_ = 0;
+			swap_lines_ = false;
+			return 0;
+		case BayerFormat::GBRG:
+			x_shift_ = 1; /* BGGR -> GBRG */
+			swap_lines_ = false;
+			return 0;
+		case BayerFormat::GRBG:
+			x_shift_ = 0; 
+			swap_lines_ = true; /* BGGR -> GRBG */
+			return 0;
+		case BayerFormat::RGGB:
+			x_shift_ = 1; /* BGGR -> GBRG */
+			swap_lines_ = true; /* GBRG -> RGGB */
+			return 0;
+		default:
+			break;
+		}
 	}
 
 	LOG(SwStats, Info)
