@@ -214,7 +214,7 @@ int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &conf
 		config.patternSize.height = 2;
 		config.patternSize.width = 4; /* 5 bytes per *4* pixels */
 		config.x_shift = 0;
-		config.outputFormats = std::vector<PixelFormat>({ formats::RGB888 });
+		config.outputFormats = std::vector<PixelFormat>({ formats::RGB888, formats::BGR888 });
 
 		switch (bayerFormat.order) {
 		case BayerFormat::BGGR:
@@ -230,7 +230,7 @@ int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &conf
 		config.bpp = 16;
 		config.patternSize.height = 2;
 		config.patternSize.width = 2;
-		config.outputFormats = std::vector<PixelFormat>({ formats::RGB888 });
+		config.outputFormats = std::vector<PixelFormat>({ formats::RGB888, formats::BGR888 });
 
 		switch (bayerFormat.order) {
 		case BayerFormat::BGGR:
@@ -253,7 +253,7 @@ int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &conf
 
 int DebayerCpu::getOutputConfig(PixelFormat outputFormat, DebayerOutputConfig &config)
 {
-	if (outputFormat == formats::RGB888) {
+	if (outputFormat == formats::RGB888 || outputFormat == formats::BGR888) {
 		config.bpp = 24;
 		return 0;
 	}
@@ -263,11 +263,42 @@ int DebayerCpu::getOutputConfig(PixelFormat outputFormat, DebayerOutputConfig &c
 	return -EINVAL;
 }
 
-/* TODO: this ignores outputFormat since there is only 1 supported outputFormat for now */
-int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat, [[maybe_unused]] PixelFormat outputFormat)
+int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat, PixelFormat outputFormat)
 {
 	BayerFormat bayerFormat =
 		BayerFormat::fromPixelFormat(inputFormat);
+
+	switch (outputFormat) {
+	case formats::RGB888:
+		swapRedBlueGains_ = false;
+		break;
+	case formats::BGR888:
+		swapRedBlueGains_ = true;
+
+		/* Swap R and B in bayer order */
+		if (bayerFormat.packing == BayerFormat::Packing::None)
+			inputConfig_.x_shift = !inputConfig_.x_shift;
+
+		switch (bayerFormat.order) {
+		case BayerFormat::BGGR:
+			bayerFormat.order = BayerFormat::RGGB;
+			break;
+		case BayerFormat::GBRG:
+			bayerFormat.order = BayerFormat::GRBG;
+			break;
+		case BayerFormat::GRBG:
+			bayerFormat.order = BayerFormat::GBRG;
+			break;
+		case BayerFormat::RGGB:
+			bayerFormat.order = BayerFormat::BGGR;
+			break;
+		default:
+			goto unsupported_fmt;
+		}
+		break;
+	default:
+		goto unsupported_fmt;
+	}
 
 	if (bayerFormat.bitDepth == 10 &&
 	    bayerFormat.packing == BayerFormat::Packing::CSI2) {
@@ -309,6 +340,7 @@ int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat, [[maybe_unused]] Pi
 		}
 	}
 
+unsupported_fmt:
 	LOG(Debayer, Error) << "Unsupported input output format combination";
 	return -EINVAL;
 }
@@ -507,6 +539,9 @@ void DebayerCpu::process(FrameBuffer *input, FrameBuffer *output, DebayerParams 
 
 		gamma_correction_ = params.gamma;
 	}
+
+	if (swapRedBlueGains_)
+		std::swap(params.gainR, params.gainB);
 
 	for (int i = 0; i < 256; i++) {
 		int idx;

@@ -103,6 +103,7 @@ private:
 	DebayerOutputConfig outputConfig_;
 	std::unique_ptr<SwStatsCpu> stats_;
 	float gamma_correction_;
+	bool swapRedBlueGains_;
 };
 
 } /* namespace libcamera */
