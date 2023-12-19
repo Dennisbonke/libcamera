@@ -203,10 +203,15 @@ void DebayerCpu::debayer10_GRGR_BGR888(uint8_t *dst, const uint8_t *src)
 	}
 }
 
+extern bool is_ov01a1s;
+
 int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &config)
 {
 	BayerFormat bayerFormat =
 		BayerFormat::fromPixelFormat(inputFormat);
+
+	if (is_ov01a1s)
+		bayerFormat.order = BayerFormat::GRGB_IGIG_GBGR_IGIG;
 
 	if (bayerFormat.bitDepth == 10 &&
 	    bayerFormat.packing == BayerFormat::Packing::CSI2) {
@@ -267,6 +272,9 @@ int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat, PixelFormat outputF
 {
 	BayerFormat bayerFormat =
 		BayerFormat::fromPixelFormat(inputFormat);
+
+	if (is_ov01a1s)
+		bayerFormat.order = BayerFormat::GRGB_IGIG_GBGR_IGIG;
 
 	switch (outputFormat) {
 	case formats::RGB888:

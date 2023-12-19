@@ -171,10 +171,15 @@ void SwStatsCpu::finishStats(void)
 	statsReady.emit(0);
 }
 
+extern bool is_ov01a1s;
+
 int SwStatsCpu::configure(const StreamConfiguration &inputCfg)
 {
 	BayerFormat bayerFormat =
 		BayerFormat::fromPixelFormat(inputCfg.pixelFormat);
+
+	if (is_ov01a1s)
+		bayerFormat.order = BayerFormat::GRGB_IGIG_GBGR_IGIG;
 
 	startFrame_ = (SwStats::statsVoidFn)&SwStatsCpu::resetStats;
 	finishFrame_ = (SwStats::statsVoidFn)&SwStatsCpu::finishStats;
