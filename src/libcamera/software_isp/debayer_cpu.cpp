@@ -26,7 +26,7 @@ DebayerCpu::DebayerCpu(std::unique_ptr<SwStatsCpu> stats)
 {
 	/* Initialize gamma to 1.0 curve */
 	for (int i = 0; i < 1024; i++)
-		gamma_[i] = i;
+		gamma_[i] = i / 4;
 }
 
 struct ctxt_8bit_src {
@@ -788,6 +788,7 @@ void DebayerCpu::process4(const uint8_t *src, uint8_t *dst)
 
 void DebayerCpu::process(FrameBuffer *input, FrameBuffer *output, DebayerParams params)
 {
+#if 0
 	static const unsigned int RED_Y_MUL = 77;	/* 0.30 * 256 */
 	static const unsigned int GREEN_Y_MUL = 150;	/* 0.59 * 256 */
 	static const unsigned int BLUE_Y_MUL = 29;	/* 0.11 * 256 */
@@ -833,6 +834,7 @@ void DebayerCpu::process(FrameBuffer *input, FrameBuffer *output, DebayerParams 
 
 		gamma_correction_ = params.gamma;
 	}
+#endif
 
 	if (swapRedBlueGains_)
 		std::swap(params.gainR, params.gainB);

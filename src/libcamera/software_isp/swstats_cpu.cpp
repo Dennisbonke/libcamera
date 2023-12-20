@@ -37,7 +37,7 @@
 	y_val = r * RED_Y_MUL;				\
 	y_val += (g1 + g2 + g3 + g4) * GREEN_Y_MUL_IR;		\
 	y_val += b * BLUE_Y_MUL;			\
-	exposurebins[y_val/4096]++;
+	stats_.y_histogram[(int)(y_val/4096)]++;
 
 #define SWISP_LINARO_FINISH_LINE_STATS()		\
 	sumR_ += sumR;					\
@@ -187,12 +187,12 @@ void SwStatsCpu::statsBGGR10Line0(const uint8_t *src, unsigned int stride)
 void SwStatsCpu::statsRGBIR10Line0(const uint8_t *src0, unsigned int stride)
 {	
 
-	const uint16_t *src0_16 = (const uint16_t *)src0 + (stride/2);
-	const uint16_t *src1_16 = src0_16 + (stride/2);
+	const uint16_t *src0_16 = (const uint16_t *)src0;
+	const uint16_t *src1_16 = (const uint16_t *)(src0 + stride);
 
 	SWISP_LINARO_START_LINE_STATS_IR()
 
-	for (int x = 0; x < (int)window_.width; x += 3) {
+	for (int x = 0; x < (int)window_.width; x += 4) {
 		
 		/* IGIG*/
 		//i = src0_16[x];
@@ -217,12 +217,12 @@ void SwStatsCpu::statsRGBIR10Line0(const uint8_t *src0, unsigned int stride)
 
 void SwStatsCpu::statsRGBIR10Line2(const uint8_t *src0, unsigned int stride)
 {
-	const uint16_t *src0_16 = (const uint16_t *)(src0 + stride);
-	const uint16_t *src1_16 = src0_16 + (stride/2);
+	const uint16_t *src0_16 = (const uint16_t *)src0;
+	const uint16_t *src1_16 = (const uint16_t *)(src0 + stride);
 
 	SWISP_LINARO_START_LINE_STATS_IR()
 
-	for (int x = 0; x < (int)window_.width; x += 3) {
+	for (int x = 0; x < (int)window_.width; x += 4) {
 		
 
 		/* IGIG*/
@@ -334,6 +334,7 @@ int SwStatsCpu::configure(const StreamConfiguration &inputCfg)
 			patternSize_.width = 4;
 			x_shift_ = 0;
 			swap_lines_ = false;
+			y_skip_mask_ = 0x4;
 			return 0;
 		default:
 			break;

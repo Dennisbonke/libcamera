@@ -119,7 +119,6 @@ void IPASoftSimple::platformStop()
 
 void IPASoftSimple::platformProcessStats(const ControlList &sensorControls)
 {
-	double ev_adjustment = 0.0;
 	ControlList ctrls(sensorControls);
 
 	/*
@@ -133,48 +132,45 @@ void IPASoftSimple::platformProcessStats(const ControlList &sensorControls)
 		return;
 	}
 
-	if (stats_->bright_ratio < 0.01)
-		ev_adjustment = 1.1;
-	if (stats_->too_bright_ratio > 0.04)
-		ev_adjustment = 0.9;
-
-
 	unsigned int denom = 0;
-
-	for(int i=0; i <= 16; i++){
-		denom += stats_->y_histogram[i];
-	}
 
 	unsigned int num = 0;
 
-	
-	for(int i = 0; i <= 16; i++){
-		num += stats_->y_histogram[i] * (i + 1);
+	int y_histogramSmall[5] = { };
+	for (int i = 0; i < 16; i++){
+		y_histogramSmall[(i - i / 8) / 3] += stats_->y_histogram[i];
+		LOG(IPASoft, Debug) << i << ": " <<stats_->y_histogram[i];
 	}
+
+	for(int i = 0; i < 5; i++){
+		denom += y_histogramSmall[i];
+		num += y_histogramSmall[i] * (i + 1);
+	}
+	
+
 
 	float exposuremsv = (float)num/denom;
+	LOG(IPASoft,Debug) << "\nBin 1: " << y_histogramSmall[0] <<"\n" <<
+							"Bin 2: " << y_histogramSmall[1] <<"\n" <<
+							"Bin 3: " << y_histogramSmall[2] <<"\n" <<
+							"Bin 4: " << y_histogramSmall[3] <<"\n" <<
+							"Bin 5: " << y_histogramSmall[4] <<"\n" <<
+							"ExposureMSV: " << exposuremsv << "\n" << 
+							"Denom: " << denom;
 
-	if (ev_adjustment != 0.0) {
-		/* sanity check */
-		if (!sensorControls.contains(V4L2_CID_EXPOSURE) ||
-		    !sensorControls.contains(V4L2_CID_ANALOGUE_GAIN)) {
-			LOG(IPASoft, Error) << "Control(s) missing";
-			return;
-		}
 
-		exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
-		again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
+	exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
+	again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
 
-		//update_exposure(ev_adjustment);
-		update_y_exposure(exposuremsv);
+	//update_exposure(ev_adjustment);
+	update_y_exposure(exposuremsv);
 
-		ctrls.set(V4L2_CID_EXPOSURE, exposure_);
-		ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
+	ctrls.set(V4L2_CID_EXPOSURE, exposure_);
+	ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
 
-		ignore_updates_ = 2;
+	ignore_updates_ = 2;
 
-		setSensorControls.emit(ctrls);
-	}
+	setSensorControls.emit(ctrls);
 }
 
 void IPASoftSimple::update_exposure(double ev_adjustment)
@@ -212,6 +208,7 @@ void IPASoftSimple::update_exposure(double ev_adjustment)
 void IPASoftSimple::update_y_exposure(double exposuremsv)
 {
 if (exposuremsv < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
+		LOG(IPASoft, Debug) << "UNDEREXPOSED";
 		// Exposure needs to be higher.
 		exposure_ += EXPOSURE_CHANGE_VALUE;
 
@@ -240,15 +237,11 @@ if (exposuremsv < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
 	// Clamp gain value between max and min value it's allowed to be.
 	if (again_ > again_max_) again_ = again_max_;
 	else if (again_ < again_min_) again_ = again_min_;
-	LOG(IPASoft,Info) << "evadjustment = " << exposuremsv;
-
-	LOG(IPASoft,Info) << "again_ = " << again_ << " again_min_ = " << again_min_ << " again_max_ = " << again_max_;
-	LOG(IPASoft,Info) << "exposure_ = " << exposure_ << " exposure_min_ = " << exposure_min_ << " exposure_max_ = " << exposure_max_;
 
 	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
 	//again_ = 1.0;
 
-	LOG(IPASoft, Info) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << again_;
+	LOG(IPASoft, Debug) << "update_y_exposure returned exposure: " << exposure_ << " and gain: " << again_;
 
 }
 
