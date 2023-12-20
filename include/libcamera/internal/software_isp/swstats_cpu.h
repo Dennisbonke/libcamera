@@ -37,11 +37,24 @@ private:
 	void resetStats(void);
 	void finishStats(void);
 
+	void statsRGBIR10Line0(const uint8_t *src, unsigned int stride);
+	void statsRGBIR10Line2(const uint8_t *src, unsigned int stride);
+	void finishRaw10Stats(void);
+	static SizeRange outSizesRaw10(const Size &inSize);
+	static unsigned int outStrideRaw10(const Size &outSize);
+
+
 	SharedMemObject<SwIspStats> sharedStats_;
 	SwIspStats stats_;
 
 	unsigned int bright_sum_;
 	unsigned int too_bright_sum_;
+
+	unsigned int red_count;
+	unsigned int blue_count;
+	unsigned int green_count;
+	unsigned int exposurebins[5];
+
 	bool swap_lines_;
 };
 

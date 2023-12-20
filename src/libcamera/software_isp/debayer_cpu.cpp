@@ -203,6 +203,264 @@ void DebayerCpu::debayer10_GRGR_BGR888(uint8_t *dst, const uint8_t *src)
 	}
 }
 
+void DebayerCpu::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
+{
+	/* Pointers to previous, current and next lines */
+	const uint16_t *prev = (const uint16_t *) (src - inputConfig_.stride);
+	const uint16_t *curr = (const uint16_t *) (src);
+	const uint16_t *next = (const uint16_t *) (src + inputConfig_.stride);
+	(void) prev; (void) curr; (void) next;
+
+	for (int x = 0; x < (int)window_.width;) {
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GBGRG
+		 *                       IGIGI
+		 *                       GRGBG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ,0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 BGRGB
+		 *                       GIGIG
+		 *                       RGBGR
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)next[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)prev[x]/4,0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GRGBG
+		 *                       IGIGI
+		 *                       GBGRG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ,0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 BGRGB
+		 *                       GIGIG
+		 *                       RGBGR
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)prev[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)next[x]/4,0xff);
+		x++;
+	}
+}
+
+void DebayerCpu::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
+{
+	/* Pointers to previous, current and next lines */
+	const uint16_t *prev2 = (const uint16_t *)(src - inputConfig_.stride * 2);
+	const uint16_t *prev = (const uint16_t *) (src - inputConfig_.stride);
+	const uint16_t *curr = (const uint16_t *) (src);
+	const uint16_t *next = (const uint16_t *) (src + inputConfig_.stride);
+	const uint16_t *next2 = (const uint16_t *)(src + inputConfig_.stride * 2);
+	(void) prev2;(void) prev; (void) curr; (void) next; (void) next2;
+
+	for (int x = 0; x < (int)window_.width;) {
+		/*
+		 * BGBG line even pixel: GBGRG
+		 * 						 IGIGI
+		 *                       GRGBG
+		 *                       IGIGI
+		 * 						 GBGRG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: BGRGB
+		 * 						 GIGIG
+		 *                       RGBGR
+		 *                       GIGIG
+		 * 						 BGRGB
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: GRGBG
+		 * 						 IGIGI
+		 *                       GBGRG
+		 *                       IGIGI
+		 * 						 GRGBG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: RGBGR
+		 * 						 GIGIG
+		 *                       BGRGB
+		 *                       GIGIG
+		 * 						 RGBGR
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		x++;	
+	}
+}
+
+void DebayerCpu::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
+{
+	/* Pointers to previous, current and next lines */
+	const uint16_t *prev = (const uint16_t *)(src - inputConfig_.stride);
+	const uint16_t *curr = (const uint16_t *)src;
+	const uint16_t *next = (const uint16_t *)(src + inputConfig_.stride);
+	(void) prev; (void) curr; (void) next;
+	
+	for (int x = 0; x < (int)window_.width;) {
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GRGBG
+		 *                       IGIGI
+		 *                       GBGRG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 RGBGR
+		 *                       GIGIG
+		 *                       BGRGB
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)prev[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)next[x]/4,0xff);
+		x++;
+
+		/*
+		 * IGIG line even pixel: IGIGI
+		 * 						 GBGRG
+		 *                       IGIGI
+		 *                       GRGBG
+		 * 						 IGIGI
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		x++;
+		/*
+		 * IGIG line even pixel: GIGIG
+		 * 						 RGBGR
+		 *                       GIGIG
+		 *                       BGRGB
+		 * 						 GIGIG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)next[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)prev[x]/4,0xff);
+		x++;
+	}
+}
+
+void DebayerCpu::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
+{
+	/* Pointers to previous, current and next lines */
+	const uint16_t *prev2 = (const uint16_t *)(src - inputConfig_.stride * 2);
+	const uint16_t *prev = (const uint16_t *) (src - inputConfig_.stride);
+	const uint16_t *curr = (const uint16_t *) (src);
+	const uint16_t *next = (const uint16_t *) (src + inputConfig_.stride);
+	const uint16_t *next2 = (const uint16_t *)(src + inputConfig_.stride * 2);
+	
+	(void) prev2;(void) prev;(void) curr;(void) next;(void) next2;
+
+	for (int x = 0; x < (int)window_.width;) {
+		/*
+		 * BGBG line even pixel: GRGBG
+		 * 						 IGIGI
+		 *                       GBGRG
+		 *                       IGIGI
+		 * 						 GRGBG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: RGBGR
+		 * 						 GIGIG
+		 *                       BGRGB
+		 *                       GIGIG
+		 * 						 RGBGR
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: GBGRG
+		 * 						 IGIGI
+		 *                       GRGBG
+		 *                       IGIGI
+		 * 						 GBGRG
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		x++;
+
+		/*
+		 * BGBG line even pixel: BGRGB
+		 * 						 GIGIG
+		 *                       RGBGR
+		 *                       GIGIG
+		 * 						 BGRGB
+		 * Write BGR
+		 */
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		x++;
+	}
+}
+
+
+
 extern bool is_ov01a1s;
 
 int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &config)
@@ -245,6 +503,12 @@ int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &conf
 		case BayerFormat::GBRG:
 		case BayerFormat::RGGB:
 			config.x_shift = 1; /* BGGR -> GBRG */
+			return 0;
+		case BayerFormat::GRGB_IGIG_GBGR_IGIG:
+			config.x_shift = 0;
+			config.outputFormats = std::vector<PixelFormat>({ formats::RGB888});
+			config.patternSize.height = 4;
+			config.patternSize.width = 4;
 			return 0;
 		default:
 			break;
@@ -342,6 +606,12 @@ int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat, PixelFormat outputF
 		case BayerFormat::RGGB: /* x_shift=1 GRBG -> RGGB */
 			debayer0_ = &DebayerCpu::debayer10_GRGR_BGR888;
 			debayer1_ = &DebayerCpu::debayer10_BGBG_BGR888;
+			return 0;
+		case BayerFormat::GRGB_IGIG_GBGR_IGIG:
+			debayer0_ = &DebayerCpu::debayerIGIG10Line0;
+			debayer1_ = &DebayerCpu::debayerGBGR10Line1;
+			debayer2_ = &DebayerCpu::debayerIGIG10Line2;
+			debayer3_ = &DebayerCpu::debayerGRGB10Line3;
 			return 0;
 		default:
 			break;

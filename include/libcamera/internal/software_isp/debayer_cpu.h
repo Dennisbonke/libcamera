@@ -70,6 +70,14 @@ private:
 	void debayer10_BGBG_BGR888(uint8_t *dst, const uint8_t *src);
 	void debayer10_GRGR_BGR888(uint8_t *dst, const uint8_t *src);
 
+	/* RGB-IR unpacked 10-bit raw bayer format (all the 4 orders)*/
+	
+	void debayerIGIG10Line0(uint8_t *dst, const uint8_t *src);
+	void debayerGBGR10Line1(uint8_t *dst, const uint8_t *src);
+	void debayerIGIG10Line2(uint8_t *dst, const uint8_t *src);
+	void debayerGRGB10Line3(uint8_t *dst, const uint8_t *src);
+
+
 	typedef void (DebayerCpu::*debayerFn)(uint8_t *dst, const uint8_t *src);
 
 	struct DebayerInputConfig {

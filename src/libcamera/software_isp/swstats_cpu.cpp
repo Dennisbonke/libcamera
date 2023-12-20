@@ -17,7 +17,35 @@
 
 #include "libcamera/internal/bayer_format.h"
 
+#define SWISP_LINARO_START_LINE_STATS_IR()			\
+	uint8_t r, g1, g2, g3, g4, b;				\
+	unsigned int y_val;				\
+							\
+	unsigned long sumR = 0;				\
+	unsigned long sumG = 0;				\
+	unsigned long sumB = 0;				
+
+#define SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()		\
+	sumR += r;					\
+	sumG += g1 + g2 + g3 + g4;				\
+	sumB += b;					\
+								\
+	red_count++;					\
+	blue_count++;					\
+	green_count += 4;				\
+							\
+	y_val = r * RED_Y_MUL;				\
+	y_val += (g1 + g2 + g3 + g4) * GREEN_Y_MUL_IR;		\
+	y_val += b * BLUE_Y_MUL;			\
+	exposurebins[y_val/13108]++;
+
+#define SWISP_LINARO_FINISH_LINE_STATS()		\
+	sumR_ += sumR;					\
+	sumG_ += sumG;					\
+	sumB_ += sumB;	
+
 namespace libcamera {
+
 
 SwStatsCpu::SwStatsCpu()
 	: SwStats()
@@ -34,6 +62,7 @@ static const unsigned int TOO_BRIGHT_LVL = 240U << 8;
 
 static const unsigned int RED_Y_MUL = 77;		/* 0.30 * 256 */
 static const unsigned int GREEN_Y_MUL = 150;		/* 0.59 * 256 */
+static const unsigned int GREEN_Y_MUL_IR = 150 / 4;	/* 0.59 * 256 */
 static const unsigned int BLUE_Y_MUL = 29;		/* 0.11 * 256 */
 
 static inline __attribute__((always_inline)) void
@@ -151,6 +180,67 @@ void SwStatsCpu::statsBGGR10Line0(const uint8_t *src, unsigned int stride)
 	too_bright_sum_ += too_bright_sum;
 }
 
+void SwStatsCpu::statsRGBIR10Line0(const uint8_t *src0, unsigned int stride)
+{	
+
+	const uint16_t *src0_16 = (const uint16_t *)src0 + (stride/2);
+	const uint16_t *src1_16 = src0_16 + (stride/2);
+
+	SWISP_LINARO_START_LINE_STATS_IR()
+
+	for (int x = 0; x < (int)window_.width; x += 3) {
+		
+		/* IGIG*/
+		//i = src0_16[x];
+		g2  = src0_16[x + 1]/4;
+		//i = src0_16[x + 2];
+		g4  = src0_16[x + 3]/4;
+
+		/* GRGB */
+		g1  = src1_16[x]/4;
+		r   = src1_16[x + 1]/4;
+		g3  = src1_16[x + 2]/4;
+		b   = src1_16[x + 3]/4;
+
+		
+		
+		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
+	}
+	stats_.sumR_ += sumR;
+	stats_.sumG_ += sumG;
+	stats_.sumB_ += sumB;
+}
+
+void SwStatsCpu::statsRGBIR10Line2(const uint8_t *src0, unsigned int stride)
+{
+	const uint16_t *src0_16 = (const uint16_t *)(src0 + stride);
+	const uint16_t *src1_16 = src0_16 + (stride/2);
+
+	SWISP_LINARO_START_LINE_STATS_IR()
+
+	for (int x = 0; x < (int)window_.width; x += 3) {
+		
+
+		/* IGIG*/
+		//i = src0_16[x];
+		g2  = src0_16[x + 1]/4;
+		//i = src0_16[x + 2];
+		g4  = src0_16[x + 3]/4;
+
+		/* GBGR */
+		g1  = src1_16[x]/4;
+		b   = src1_16[x + 1]/4;
+		g3  = src1_16[x + 2]/4;
+		r   = src1_16[x + 3]/4;
+		
+		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
+	}
+	stats_.sumR_ += sumR;
+	stats_.sumG_ += sumG;
+	stats_.sumB_ += sumB;
+}
+
+
 void SwStatsCpu::resetStats(void)
 {
 	stats_.sumR_ = 0;
@@ -230,6 +320,14 @@ int SwStatsCpu::configure(const StreamConfiguration &inputCfg)
 		case BayerFormat::RGGB:
 			x_shift_ = 1; /* BGGR -> GBRG */
 			swap_lines_ = true; /* GBRG -> RGGB */
+			return 0;
+		case BayerFormat::GRGB_IGIG_GBGR_IGIG:
+			stats0_ = (SwStats::statsProcessFn)&SwStatsCpu::statsRGBIR10Line0;
+			stats2_ = (SwStats::statsProcessFn)&SwStatsCpu::statsRGBIR10Line2;
+			patternSize_.height = 4;
+			patternSize_.width = 4;
+			x_shift_ = 0;
+			swap_lines_ = false;
 			return 0;
 		default:
 			break;
