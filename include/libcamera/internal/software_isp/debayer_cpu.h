@@ -22,6 +22,12 @@
 
 namespace libcamera {
 
+/**
+ * \class DebayerCpu
+ * \brief Class for debayering on the CPU
+ *
+ * Implementation for CPU based debayering
+ */
 class DebayerCpu : public Debayer, public Object
 {
 public:
@@ -29,6 +35,10 @@ public:
 	  * FIXME this should be a plain (implementation independent)  SwStats
 	  * this can be fixed once getStats() is dropped.
 	  */
+	/**
+	 * \brief Constructs a DebayerCpu object.
+	 * \param[in] stats Pointer to the stats object to use.
+	 */
 	DebayerCpu(std::unique_ptr<SwStatsCpu> stats);
 	~DebayerCpu() {}
 
@@ -52,8 +62,18 @@ public:
 
 	void process(FrameBuffer *input, FrameBuffer *output, DebayerParams params);
 
+	/**
+	 * \brief Get the file descriptor for the statistics.
+	 *
+	 * \return the file descriptor pointing to the statistics.
+	 */
 	const SharedFD &getStatsFD() { return stats_->getStatsFD(); }
 
+	/**
+	 * \brief Get the output frame size.
+	 *
+	 * \return The output frame size.
+	 */
 	unsigned int frameSize() { return outputConfig_.frameSize; }
 
 	/* FIXME this should be dropped once AWB has moved to the IPA */
