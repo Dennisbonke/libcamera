@@ -16,6 +16,8 @@ struct SwIspStats {
 
 	float bright_ratio;
 	float too_bright_ratio;
+
+	int y_histogram[16];
 };
 
 } /* namespace libcamera */

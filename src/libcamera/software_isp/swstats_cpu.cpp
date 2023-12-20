@@ -103,6 +103,8 @@ statsBayer10P(const int width, const uint8_t *src0, const uint8_t *src1, bool bg
 		y_val += b * BLUE_Y_MUL;
 		if (y_val > BRIGHT_LVL) ++bright_sum;
 		if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
+
+		
 	}
 
 	stats_.sumR_ += sumR;
