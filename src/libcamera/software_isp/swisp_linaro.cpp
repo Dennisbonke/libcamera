@@ -486,7 +486,7 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line0(const uint8_t *src0)
 {	
 
 	const int width_in_bytes = width_;
-	const uint16_t *src0_16 = (uint16_t *)src0 + (stride_/2);
+	const uint16_t *src0_16 = (const uint16_t *)src0 + (stride_/2);
 	const uint16_t *src1_16 = src0_16 + (stride_/2);
 
 	SWISP_LINARO_START_LINE_STATS_IR()
@@ -495,15 +495,15 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line0(const uint8_t *src0)
 		
 		/* IGIG*/
 		//i = src0_16[x];
-		g2  = src0_16[x + 1];
+		g2  = src0_16[x + 1]/4;
 		//i = src0_16[x + 2];
-		g4  = src0_16[x + 3];
+		g4  = src0_16[x + 3]/4;
 
 		/* GRGB */
-		g1  = src1_16[x];
-		r   = src1_16[x + 1];
-		g3  = src1_16[x + 2];
-		b   = src1_16[x + 3];
+		g1  = src1_16[x]/4;
+		r   = src1_16[x + 1]/4;
+		g3  = src1_16[x + 2]/4;
+		b   = src1_16[x + 3]/4;
 
 		
 		
@@ -515,7 +515,7 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line0(const uint8_t *src0)
 void SwIspLinaro::IspWorker::statsRGBIR10Line2(const uint8_t *src0)
 {
 	const int width_in_bytes = width_;
-	const uint16_t *src0_16 = (uint16_t *)src0 + (stride_/2);
+	const uint16_t *src0_16 = (const uint16_t *)src0 + (stride_/2);
 	const uint16_t *src1_16 = src0_16 + (stride_/2);
 
 	SWISP_LINARO_START_LINE_STATS_IR()
@@ -525,15 +525,15 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line2(const uint8_t *src0)
 
 		/* IGIG*/
 		//i = src0_16[x];
-		g2  = src0_16[x + 1];
+		g2  = src0_16[x + 1]/4;
 		//i = src0_16[x + 2];
-		g4  = src0_16[x + 3];
+		g4  = src0_16[x + 3]/4;
 
 		/* GBGR */
-		g1  = src1_16[x];
-		b   = src1_16[x + 1];
-		g3  = src1_16[x + 2];
-		r   = src1_16[x + 3];
+		g1  = src1_16[x]/4;
+		b   = src1_16[x + 1]/4;
+		g3  = src1_16[x + 2]/4;
+		r   = src1_16[x + 3]/4;
 		
 		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
 	}
@@ -543,9 +543,9 @@ void SwIspLinaro::IspWorker::statsRGBIR10Line2(const uint8_t *src0)
 void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
 {
 	/* Pointers to previous, current and next lines */
-	const uint16_t *prev = (uint16_t *) (src - stride_);
-	const uint16_t *curr = (uint16_t *) (src);
-	const uint16_t *next = (uint16_t *) (src + stride_);
+	const uint16_t *prev = (const uint16_t *) (src - stride_);
+	const uint16_t *curr = (const uint16_t *) (src);
+	const uint16_t *next = (const uint16_t *) (src + stride_);
 	(void) prev; (void) curr; (void) next;
 
 	for (int x = 4; x < (int)width_;) {
@@ -557,9 +557,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4) ,0xff);
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ,0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
 		x++;
 
 		/*
@@ -570,9 +570,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)next[x],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)prev[x],0xff);
+		*dst++ = std::min((int)next[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)prev[x]/4,0xff);
 		x++;
 
 		/*
@@ -583,9 +583,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4) ,0xff);
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ,0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
 		x++;
 
 		/*
@@ -596,9 +596,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)prev[x],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)next[x],0xff);
+		*dst++ = std::min((int)prev[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)next[x]/4,0xff);
 		x++;
 	}
 }
@@ -606,11 +606,11 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src
 void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
 {
 	/* Pointers to previous, current and next lines */
-	const uint16_t *prev2 = (uint16_t *)(src - stride_ * 2);
-	const uint16_t *prev = (uint16_t *) (src - stride_);
-	const uint16_t *curr = (uint16_t *) (src);
-	const uint16_t *next = (uint16_t *) (src + stride_);
-	const uint16_t *next2 = (uint16_t *)(src + stride_ * 2);
+	const uint16_t *prev2 = (const uint16_t *)(src - stride_ * 2);
+	const uint16_t *prev = (const uint16_t *) (src - stride_);
+	const uint16_t *curr = (const uint16_t *) (src);
+	const uint16_t *next = (const uint16_t *) (src + stride_);
+	const uint16_t *next2 = (const uint16_t *)(src + stride_ * 2);
 	(void) prev2;(void) prev; (void) curr; (void) next; (void) next2;
 
 	for (int x = 4; x < (int)width_;) {
@@ -622,9 +622,9 @@ void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src
 		 * 						 GBGRG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x + 1],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)curr[x - 1],0xff);
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
 		x++;
 
 		/*
@@ -635,9 +635,9 @@ void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src
 		 * 						 BGRGB
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
 		x++;
 
 		/*
@@ -648,9 +648,9 @@ void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src
 		 * 						 GRGBG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x - 1],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)curr[x + 1],0xff);
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
 		x++;
 
 		/*
@@ -661,9 +661,9 @@ void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src
 		 * 						 RGBGR
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
 		x++;	
 	}
 }
@@ -671,9 +671,9 @@ void SwIspLinaro::IspWorker::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src
 void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
 {
 	/* Pointers to previous, current and next lines */
-	const uint16_t *prev = (uint16_t *)(src - stride_);
-	const uint16_t *curr = (uint16_t *)src;
-	const uint16_t *next = (uint16_t *)(src + stride_);
+	const uint16_t *prev = (const uint16_t *)(src - stride_);
+	const uint16_t *curr = (const uint16_t *)src;
+	const uint16_t *next = (const uint16_t *)(src + stride_);
 	(void) prev; (void) curr; (void) next;
 	
 	for (int x = 4; x < (int)width_;) {
@@ -685,9 +685,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
 		x++;
 
 		/*
@@ -698,9 +698,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)prev[x],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)next[x],0xff);
+		*dst++ = std::min((int)prev[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)next[x]/4,0xff);
 		x++;
 
 		/*
@@ -711,9 +711,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/2),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/2),0xff);
+		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
 		x++;
 		/*
 		 * IGIG line even pixel: GIGIG
@@ -723,9 +723,9 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)next[x],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)prev[x],0xff);
+		*dst++ = std::min((int)next[x]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)prev[x]/4,0xff);
 		x++;
 	}
 }
@@ -733,11 +733,11 @@ void SwIspLinaro::IspWorker::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src
 void SwIspLinaro::IspWorker::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
 {
 	/* Pointers to previous, current and next lines */
-	const uint16_t *prev2 = (uint16_t *)(src - stride_ * 2);
-	const uint16_t *prev = (uint16_t *) (src - stride_);
-	const uint16_t *curr = (uint16_t *) (src);
-	const uint16_t *next = (uint16_t *) (src + stride_);
-	const uint16_t *next2 = (uint16_t *)(src + stride_ * 2);
+	const uint16_t *prev2 = (const uint16_t *)(src - stride_ * 2);
+	const uint16_t *prev = (const uint16_t *) (src - stride_);
+	const uint16_t *curr = (const uint16_t *) (src);
+	const uint16_t *next = (const uint16_t *) (src + stride_);
+	const uint16_t *next2 = (const uint16_t *)(src + stride_ * 2);
 	
 	(void) prev2;(void) prev;(void) curr;(void) next;(void) next2;
 
@@ -750,9 +750,9 @@ void SwIspLinaro::IspWorker::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src
 		 * 						 GRGBG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x - 1],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)curr[x + 1],0xff);
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
 		x++;
 
 		/*
@@ -763,9 +763,9 @@ void SwIspLinaro::IspWorker::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src
 		 * 						 RGBGR
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)curr[x],0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
 		x++;
 
 		/*
@@ -776,9 +776,9 @@ void SwIspLinaro::IspWorker::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src
 		 * 						 GBGRG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x + 1],0xff);
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)curr[x - 1],0xff);
+		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)curr[x - 1]/4,0xff);
 		x++;
 
 		/*
@@ -789,21 +789,16 @@ void SwIspLinaro::IspWorker::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src
 		 * 						 BGRGB
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x],0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/4),0xff);
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/4),0xff);
+		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
+		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
 		x++;
 	}
 }
 
 void SwIspLinaro::IspWorker::finishRaw10Stats(void)
 {
-	/* calculate the fractions of "bright" and "too bright" pixels */
-	// stats_.bright_ratio = (float)bright_sum_ / (outHeight_ * outWidth_ / 4);
-	// stats_.too_bright_ratio = (float)too_bright_sum_ / (outHeight_ * outWidth_ / 4);
-
-	//stats_.exposurebins[0] = exposurebins[0];
-
+	/* Copy exposurebins to stats_ struct */
 	std::copy(exposurebins, exposurebins+5,stats_.exposurebins);
 
 	/* add sum values and color count to statistics*/
@@ -830,10 +825,10 @@ void SwIspLinaro::IspWorker::finishRaw10Stats(void)
 	xxx = 75;
 	LOG(SoftwareIsp, Info)
 		<< "exposure[0] = " << stats_.exposurebins[0]
-		<< "exposure[1] = " << stats_.exposurebins[1]
-		<< "exposure[2] = " << stats_.exposurebins[2]
-		<< "exposure[3] = " << stats_.exposurebins[3]
-		<< "exposure[4] = " << stats_.exposurebins[4];
+		<< "\nexposure[1] = " << stats_.exposurebins[1]
+		<< "\nexposure[2] = " << stats_.exposurebins[2]
+		<< "\nexposure[3] = " << stats_.exposurebins[3]
+		<< "\nexposure[4] = " << stats_.exposurebins[4];
 	LOG(SoftwareIsp, Info)
 		<< "sumR = " << sumR_ << ", sumB = " << sumB_ << ", sumG = " << sumG_;
 	LOG(SoftwareIsp, Info)

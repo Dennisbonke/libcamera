@@ -200,9 +200,10 @@ if (ev_adjustment < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
 	// Clamp gain value between max and min value it's allowed to be.
 	if (again_ > again_max_) again_ = again_max_;
 	else if (again_ < again_min_) again_ = again_min_;
+	LOG(IPASoft,Info) << "evadjustment = " << ev_adjustment;
 
-	LOG(IPASoft,Debug) << "again_ = " << again_ << " again_min_ = " << again_min_ << " again_max_ = " << again_max_;
-	LOG(IPASoft,Debug) << "exposure_ = " << exposure_ << " exposure_min_ = " << exposure_min_ << " exposure_max_ = " << exposure_max_;
+	LOG(IPASoft,Info) << "again_ = " << again_ << " again_min_ = " << again_min_ << " again_max_ = " << again_max_;
+	LOG(IPASoft,Info) << "exposure_ = " << exposure_ << " exposure_min_ = " << exposure_min_ << " exposure_max_ = " << exposure_max_;
 
 	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
 	//again_ = 1.0;
