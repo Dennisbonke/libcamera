@@ -30,14 +30,30 @@ DebayerCpu::DebayerCpu(std::unique_ptr<SwStatsCpu> stats)
 }
 
 struct ctxt_8bit_src {
-	/* Pointers to previous, current and next lines */
+	/**
+	 * \brief Pointer to the previous line.
+	 */
 	const uint8_t *prev;
+	/**
+	 * \brief Pointer to the current line.
+	 */
 	const uint8_t *curr;
+	/**
+	 * \brief Pointer to the next line.
+	 */
 	const uint8_t *next;
 
-	/* Pointers to per color lookup tables for awb + gamma, etc. */
+	/**
+	 * Pointer to the red color lookup table for awb + gamma.
+	 */
 	const uint8_t *red;
+	/**
+	 * Pointer to the green color lookup table for awb + gamma.
+	 */
 	const uint8_t *green;
+	/**
+	 * Pointer to the blue color lookup table for awb + gamma.
+	 */
 	const uint8_t *blue;
 };
 
