@@ -37,7 +37,7 @@
 	y_val = r * RED_Y_MUL;				\
 	y_val += (g1 + g2 + g3 + g4) * GREEN_Y_MUL_IR;		\
 	y_val += b * BLUE_Y_MUL;			\
-	exposurebins[y_val/13108]++;
+	exposurebins[y_val/4096]++;
 
 #define SWISP_LINARO_FINISH_LINE_STATS()		\
 	sumR_ += sumR;					\

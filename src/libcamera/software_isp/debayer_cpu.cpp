@@ -236,9 +236,9 @@ void DebayerCpu::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ,0xff);
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		*dst++ = blue_[((prev[x - 1] + next[x + 1])/8)];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ];
+		*dst++ = red_[((prev[x + 1] + next[x - 1])/8)];
 		x++;
 
 		/*
@@ -249,9 +249,9 @@ void DebayerCpu::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)next[x]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)prev[x]/4,0xff);
+		*dst++ = blue_[next[x]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[prev[x]/4];
 		x++;
 
 		/*
@@ -262,9 +262,9 @@ void DebayerCpu::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ,0xff);
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		*dst++ = blue_[((prev[x + 1] + next[x - 1])/8)];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16) ];
+		*dst++ = red_[((prev[x - 1] + next[x + 1])/8)];
 		x++;
 
 		/*
@@ -275,9 +275,9 @@ void DebayerCpu::debayerIGIG10Line0(uint8_t *dst, const uint8_t *src)
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)prev[x]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)next[x]/4,0xff);
+		*dst++ = blue_[prev[x]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[next[x]/4];
 		x++;
 	}
 }
@@ -301,9 +301,9 @@ void DebayerCpu::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
 		 * 						 GBGRG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x + 1]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		*dst++ = blue_[curr[x + 1]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[curr[x - 1]/4];
 		x++;
 
 		/*
@@ -314,9 +314,9 @@ void DebayerCpu::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
 		 * 						 BGRGB
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		*dst++ = blue_[curr[x]/4];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16)];
+		*dst++ = red_[((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16)];
 		x++;
 
 		/*
@@ -327,9 +327,9 @@ void DebayerCpu::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
 		 * 						 GRGBG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x - 1]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		*dst++ = blue_[curr[x - 1]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[curr[x + 1]/4];
 		x++;
 
 		/*
@@ -340,9 +340,9 @@ void DebayerCpu::debayerGBGR10Line1(uint8_t *dst, const uint8_t *src)
 		 * 						 RGBGR
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = blue_[((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16)];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16)];
+		*dst++ = red_[curr[x]/4];
 		x++;	
 	}
 }
@@ -364,9 +364,9 @@ void DebayerCpu::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
+		*dst++ = blue_[((prev[x + 1] + next[x - 1])/8)];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16)];
+		*dst++ = red_[((prev[x - 1] + next[x + 1])/8)];
 		x++;
 
 		/*
@@ -377,9 +377,9 @@ void DebayerCpu::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)prev[x]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)next[x]/4,0xff);
+		*dst++ = blue_[prev[x]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[next[x]/4];
 		x++;
 
 		/*
@@ -390,9 +390,9 @@ void DebayerCpu::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
 		 * 						 IGIGI
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((prev[x - 1] + next[x + 1])/8),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
-		*dst++ = std::min((int)((prev[x + 1] + next[x - 1])/8),0xff);
+		*dst++ = blue_[((prev[x - 1] + next[x + 1])/8)];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16)];
+		*dst++ = red_[((prev[x + 1] + next[x - 1])/8)];
 		x++;
 		/*
 		 * IGIG line even pixel: GIGIG
@@ -402,9 +402,9 @@ void DebayerCpu::debayerIGIG10Line2(uint8_t *dst, const uint8_t *src)
 		 * 						 GIGIG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)next[x]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)prev[x]/4,0xff);
+		*dst++ = blue_[next[x]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[prev[x]/4];
 		x++;
 	}
 }
@@ -429,9 +429,9 @@ void DebayerCpu::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
 		 * 						 GRGBG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x - 1]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)curr[x + 1]/4,0xff);
+		*dst++ = blue_[curr[x - 1]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[curr[x + 1]/4];
 		x++;
 
 		/*
@@ -442,9 +442,9 @@ void DebayerCpu::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
 		 * 						 RGBGR
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
+		*dst++ = blue_[((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16)];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16)];
+		*dst++ = red_[curr[x]/4];
 		x++;
 
 		/*
@@ -455,9 +455,9 @@ void DebayerCpu::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
 		 * 						 GBGRG
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x + 1]/4,0xff);
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)curr[x - 1]/4,0xff);
+		*dst++ = blue_[curr[x + 1]/4];
+		*dst++ = green_[curr[x]/4];
+		*dst++ = red_[curr[x - 1]/4];
 		x++;
 
 		/*
@@ -468,9 +468,9 @@ void DebayerCpu::debayerGRGB10Line3(uint8_t *dst, const uint8_t *src)
 		 * 						 BGRGB
 		 * Write BGR
 		 */
-		*dst++ = std::min((int)curr[x]/4,0xff);
-		*dst++ = std::min((int)((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16),0xff);
-		*dst++ = std::min((int)((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16),0xff);
+		*dst++ = blue_[curr[x]/4];
+		*dst++ = green_[((curr[x - 1] + curr[x + 1] + prev[x] + next[x])/16)];
+		*dst++ = red_[((curr[x - 2] + curr[x + 2] + prev2[x] + next2[x])/16)];
 		x++;
 	}
 }

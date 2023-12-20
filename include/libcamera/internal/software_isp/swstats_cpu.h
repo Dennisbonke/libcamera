@@ -53,7 +53,7 @@ private:
 	unsigned int red_count;
 	unsigned int blue_count;
 	unsigned int green_count;
-	unsigned int exposurebins[5];
+	unsigned int exposurebins[16];
 
 	bool swap_lines_;
 };
