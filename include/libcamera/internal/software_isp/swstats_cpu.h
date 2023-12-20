@@ -17,6 +17,10 @@
 
 namespace libcamera {
 
+/**
+ * \class SwStatsCpu
+ * \brief Implementation for the Software statistics on the CPU.
+ */
 class SwStatsCpu : public SwStats
 {
 public:
