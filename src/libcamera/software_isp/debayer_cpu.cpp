@@ -29,6 +29,9 @@ DebayerCpu::DebayerCpu(std::unique_ptr<SwStatsCpu> stats)
 		gamma_[i] = i / 4;
 }
 
+/**
+ * \brief Struct that holds the context for debayering lines.
+ */
 struct ctxt_8bit_src {
 	/**
 	 * \brief Pointer to the previous line.
