@@ -334,7 +334,7 @@ int SwStatsCpu::configure(const StreamConfiguration &inputCfg)
 			patternSize_.width = 4;
 			x_shift_ = 0;
 			swap_lines_ = false;
-			y_skip_mask_ = 0x4;
+			y_skip_mask_ = 0x0;
 			return 0;
 		default:
 			break;
