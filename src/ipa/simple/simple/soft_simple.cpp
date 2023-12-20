@@ -141,7 +141,6 @@ void IPASoftSimple::platformProcessStats(const ControlList &sensorControls)
 	int y_histogramSmall[5] = { };
 	for (int i = 0; i < 16; i++){
 		y_histogramSmall[(i - i / 8) / 3] += stats_->y_histogram[i];
-		LOG(IPASoft, Debug) << i << ": " <<stats_->y_histogram[i];
 	}
 
 	for(int i = 0; i < 5; i++){
