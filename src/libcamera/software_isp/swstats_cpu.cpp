@@ -27,12 +27,12 @@
 
 #define SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()		\
 	sumR += r;					\
-	sumG += g1 + g2 + g3 + g4;				\
+	sumG += (g1 + g2 + g3 + g4) / 4;		\
 	sumB += b;					\
 								\
 	red_count++;					\
 	blue_count++;					\
-	green_count += 4;				\
+	green_count++;				\
 							\
 	y_val = r * RED_Y_MUL;				\
 	y_val += (g1 + g2 + g3 + g4) * GREEN_Y_MUL_IR;		\
@@ -200,12 +200,12 @@ void SwStatsCpu::statsRGBIR10Line0(const uint8_t *src0, unsigned int stride)
 		//i = src0_16[x + 2];
 		g4  = src0_16[x + 3]/4;
 
-		/* GRGB */
+		/* GBGR */
 		g1  = src1_16[x]/4;
-		r   = src1_16[x + 1]/4;
+		b   = src1_16[x + 1]/4;
 		g3  = src1_16[x + 2]/4;
-		b   = src1_16[x + 3]/4;
-
+		r   = src1_16[x + 3]/4;
+		
 		
 		
 		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
@@ -231,12 +231,12 @@ void SwStatsCpu::statsRGBIR10Line2(const uint8_t *src0, unsigned int stride)
 		//i = src0_16[x + 2];
 		g4  = src0_16[x + 3]/4;
 
-		/* GBGR */
+		/* GRGB */
 		g1  = src1_16[x]/4;
-		b   = src1_16[x + 1]/4;
+		r   = src1_16[x + 1]/4;
 		g3  = src1_16[x + 2]/4;
-		r   = src1_16[x + 3]/4;
-		
+		b   = src1_16[x + 3]/4;
+
 		SWISP_LINARO_ACCUMULATE_LINE_STATS_IR()
 	}
 	stats_.sumR_ += sumR;

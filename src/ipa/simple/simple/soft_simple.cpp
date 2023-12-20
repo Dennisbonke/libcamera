@@ -24,6 +24,8 @@
 
 #define EXPOSURE_CHANGE_VALUE 130
 
+#define OPTIMAL_EXPOSURE_VALUE 2.5
+
 namespace libcamera {
 
 LOG_DECLARE_CATEGORY(IPASoft)
@@ -207,7 +209,7 @@ void IPASoftSimple::update_exposure(double ev_adjustment)
 
 void IPASoftSimple::update_y_exposure(double exposuremsv)
 {
-if (exposuremsv < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
+if (exposuremsv < OPTIMAL_EXPOSURE_VALUE - EXPOSURE_SATISFACTORY_OFFSET){
 		LOG(IPASoft, Debug) << "UNDEREXPOSED";
 		// Exposure needs to be higher.
 		exposure_ += EXPOSURE_CHANGE_VALUE;
@@ -218,7 +220,7 @@ if (exposuremsv < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
 		}
 	}
 	
-	if (exposuremsv > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
+	if (exposuremsv > OPTIMAL_EXPOSURE_VALUE + EXPOSURE_SATISFACTORY_OFFSET){
 
 		LOG(IPASoft, Debug) << "OVEREXPOSED";
 		// If exposure is maximum, and gain is not minimum, decrease gain.

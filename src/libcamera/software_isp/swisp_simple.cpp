@@ -22,7 +22,7 @@
 namespace libcamera {
 
 SwIspSimple::SwIspSimple(PipelineHandler *pipe, const ControlInfoMap &sensorControls)
-	: SoftwareIsp(pipe, sensorControls), debayer_(nullptr), debayerParams_{256, 256, 256, 0.5f}
+	: SoftwareIsp(pipe, sensorControls), debayer_(nullptr), debayerParams_{256, 256, 256, 1.0f}
 {
 	std::unique_ptr<SwStatsCpu> stats;
 

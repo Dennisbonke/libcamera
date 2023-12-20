@@ -693,7 +693,7 @@ int DebayerCpu::configure(const StreamConfiguration &inputCfg,
 	window_.height = outputCfg.size.height;
 
 	/* Don't pass x,y since process() already adjusts src before passing it */
-	stats_->setWindow(Rectangle(window_.size()));
+	stats_->setWindow(Rectangle(window_.width / 6, 0, window_.width * 2 / 3, window_.height));
 
 	return 0;
 }
@@ -791,11 +791,7 @@ void DebayerCpu::process4(const uint8_t *src, uint8_t *dst)
 
 void DebayerCpu::process(FrameBuffer *input, FrameBuffer *output, DebayerParams params)
 {
-#if 0
-	static const unsigned int RED_Y_MUL = 77;	/* 0.30 * 256 */
-	static const unsigned int GREEN_Y_MUL = 150;	/* 0.59 * 256 */
-	static const unsigned int BLUE_Y_MUL = 29;	/* 0.11 * 256 */
-
+#if 1
 	/*
 	 * HACK use stats from previous frame to calculate gains for simple AWB.
 	 * This overrides the passed in gains since nothing is setting these yet.
@@ -803,28 +799,24 @@ void DebayerCpu::process(FrameBuffer *input, FrameBuffer *output, DebayerParams 
 	 * our caller then passing these in.
 	 */
 	struct SwIspStats stats = stats_->getStats();
+	
 
 	/* Calculate the average sum of Y multiplied by 256 */
-	unsigned long y256 = stats.sumR_ * RED_Y_MUL
-		+ stats.sumG_ * GREEN_Y_MUL + stats.sumB_ * BLUE_Y_MUL;
+	unsigned long y256 = 256 * std::max({stats.sumR_, stats.sumG_, stats.sumB_});
+	(void)y256;
 
 	/* Clamp max gain at 4.0, this also avoids 0 division */
-	if (stats.sumR_ <= y256 / 1024)
-		params.gainR = 1024;
+	if (stats.sumR_ <= 1024)
+	 	params.gainR = 1024;
 	else
-		params.gainR  = y256 / stats.sumR_;
+		params.gainR = 256 * stats.sumG_ / stats.sumR_;
 
-	if (stats.sumG_ <= y256 / 1024)
-		params.gainG = 1024;
+	if (stats.sumB_ <= 1024)
+	 	params.gainB = 1024;
 	else
-		params.gainG = y256 / stats.sumG_;
+		params.gainB = 256 * stats.sumG_ / stats.sumB_;
 
-	if (stats.sumB_ <= y256 / 1024)
-		params.gainB = 1024;
-	else
-		params.gainB = y256 / stats.sumB_;
-
-	LOG(Debayer, Debug)
+	LOG(Debayer, Info)
 		<< "AWB sums R " << stats.sumR_ << " G " << stats.sumG_ << " B " << stats.sumB_
 		<< "\n    gain R " << params.gainR << " G " << params.gainG << " B " << params.gainB;
 
