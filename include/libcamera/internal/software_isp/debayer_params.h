@@ -12,14 +12,31 @@
 
 namespace libcamera {
 
+/**
+ * \brief Struct to hold the debayer parameters.
+ */
 struct DebayerParams {
-	/* Red Gain, 128 = 0.5, 256 = 1.0, 512 = 2.0, etc. */
+	/**
+	 * \brief Red Gain.
+	 *
+	 * 128 = 0.5, 256 = 1.0, 512 = 2.0, etc.
+	 */
 	unsigned int gainR;
-	/* Green Gain, same range as Red Gain. */
+	/**
+	 * \brief Green Gain.
+	 *
+	 * 128 = 0.5, 256 = 1.0, 512 = 2.0, etc.
+	 */
 	unsigned int gainG;
-	/* Blue Gain, same range as Red Gain. */
+	/**
+	 * \brief Blue Gain.
+	 *
+	 * 128 = 0.5, 256 = 1.0, 512 = 2.0, etc.
+	 */
 	unsigned int gainB;
-	/* Gamma correction, 1.0 is no correction. */
+	/**
+	 * \brief Gamma correction, 1.0 is no correction.
+	 */
 	float gamma;
 };
 
