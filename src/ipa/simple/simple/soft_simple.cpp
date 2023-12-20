@@ -20,6 +20,10 @@
 
 #include "common/soft_base.h"
 
+#define EXPOSURE_SATISFACTORY_OFFSET 0.2
+
+#define EXPOSURE_CHANGE_VALUE 130
+
 namespace libcamera {
 
 LOG_DECLARE_CATEGORY(IPASoft)
@@ -48,6 +52,7 @@ public:
 
 private:
 	void update_exposure(double ev_adjustment);
+	void update_y_exposure(double exposuremsv);
 
 	SwIspStats *stats_;
 	int exposure_min_, exposure_max_;
@@ -133,6 +138,22 @@ void IPASoftSimple::platformProcessStats(const ControlList &sensorControls)
 	if (stats_->too_bright_ratio > 0.04)
 		ev_adjustment = 0.9;
 
+
+	unsigned int denom = 0;
+
+	for(int i=0; i <= 16; i++){
+		denom += stats_->y_histogram[i];
+	}
+
+	unsigned int num = 0;
+
+	
+	for(int i = 0; i <= 16; i++){
+		num += stats_->y_histogram[i] * (i + 1);
+	}
+
+	float exposuremsv = (float)num/denom;
+
 	if (ev_adjustment != 0.0) {
 		/* sanity check */
 		if (!sensorControls.contains(V4L2_CID_EXPOSURE) ||
@@ -144,7 +165,8 @@ void IPASoftSimple::platformProcessStats(const ControlList &sensorControls)
 		exposure_ = ctrls.get(V4L2_CID_EXPOSURE).get<int>();
 		again_ = ctrls.get(V4L2_CID_ANALOGUE_GAIN).get<int>();
 
-		update_exposure(ev_adjustment);
+		//update_exposure(ev_adjustment);
+		update_y_exposure(exposuremsv);
 
 		ctrls.set(V4L2_CID_EXPOSURE, exposure_);
 		ctrls.set(V4L2_CID_ANALOGUE_GAIN, again_);
@@ -185,6 +207,49 @@ void IPASoftSimple::update_exposure(double ev_adjustment)
 
 	LOG(IPASoft, Debug) << "Desired EV = " << ev
 			    << ", real EV = " << (double)again_ * exposure_;
+}
+
+void IPASoftSimple::update_y_exposure(double exposuremsv)
+{
+if (exposuremsv < 2.5 - EXPOSURE_SATISFACTORY_OFFSET){
+		// Exposure needs to be higher.
+		exposure_ += EXPOSURE_CHANGE_VALUE;
+
+		if (exposure_ >= exposure_max_){
+			// Increase gain.
+			again_ += EXPOSURE_CHANGE_VALUE;
+		}
+	}
+	
+	if (exposuremsv > 2.5 + EXPOSURE_SATISFACTORY_OFFSET){
+
+		LOG(IPASoft, Debug) << "OVEREXPOSED";
+		// If exposure is maximum, and gain is not minimum, decrease gain.
+		if (exposure_ == exposure_max_ && again_ != again_min_){
+			again_ -= EXPOSURE_CHANGE_VALUE;
+		}else {
+			exposure_ -= EXPOSURE_CHANGE_VALUE;
+		}
+		// Exposure needs to be lower.
+		
+	}
+	// Clamp exposure value between max and min value it's allowed to be.
+	if (exposure_ > exposure_max_) exposure_ = exposure_max_;
+	else if (exposure_ < exposure_min_) exposure_ = exposure_min_;
+	
+	// Clamp gain value between max and min value it's allowed to be.
+	if (again_ > again_max_) again_ = again_max_;
+	else if (again_ < again_min_) again_ = again_min_;
+	LOG(IPASoft,Info) << "evadjustment = " << exposuremsv;
+
+	LOG(IPASoft,Info) << "again_ = " << again_ << " again_min_ = " << again_min_ << " again_max_ = " << again_max_;
+	LOG(IPASoft,Info) << "exposure_ = " << exposure_ << " exposure_min_ = " << exposure_min_ << " exposure_max_ = " << exposure_max_;
+
+	// Set optimal gain to some default value. We first need to make sure exposure is correctly set before fiddling with gain.
+	//again_ = 1.0;
+
+	LOG(IPASoft, Info) << "update_exposure2 returned exposure: " << exposure_ << " and gain: " << again_;
+
 }
 
 } /* namespace ipa::soft */
