@@ -74,8 +74,8 @@ statsBayer10P(const int width, const uint8_t *src0, const uint8_t *src1, bool bg
 		y_val += b * BLUE_Y_MUL;
 		if (y_val > BRIGHT_LVL) ++bright_sum;
 		if (y_val > TOO_BRIGHT_LVL) ++too_bright_sum;
-
-		
+		/* Increase y value histogram | Devide by 4096 to get 16 bins */
+		stats_.y_histogram[y_val/4096]++;
 	}
 
 	stats_.sumR_ += sumR;
@@ -143,6 +143,8 @@ void SwStatsCpu::statsBGGR10Line0(const uint8_t *src, unsigned int stride)
 		/* Thresholds * 4 because 10 bit data */
 		if (y_val > (BRIGHT_LVL * 4)) ++bright_sum;
 		if (y_val > (TOO_BRIGHT_LVL * 4)) ++too_bright_sum;
+		/* Increase y value histogram | Devide by 4096 to get 16 bins */
+		stats_.y_histogram[y_val/4096]++;
 	}
 
 	stats_.sumR_ += sumR;
@@ -161,6 +163,8 @@ void SwStatsCpu::resetStats(void)
 
 	bright_sum_ = 0;
 	too_bright_sum_ = 0;
+
+	std::fill_n(stats_.y_histogram, 16, 0);
 }
 
 void SwStatsCpu::finishStats(void)
